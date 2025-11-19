@@ -1,73 +1,87 @@
-# APIverse - Enterprise API SaaS Platform
+# APIVerse
 
-This is a full-stack SaaS platform for API subscriptions (Email, SMS, Chatbot).
+![APIVerse Dashboard](assets/dashboard.png)
 
-## Project Structure
+**APIVerse** is a next-generation SaaS platform designed to unify communication APIs. It provides a high-performance, developer-friendly interface for managing Email, SMS, and AI Chatbot integrations.
 
-- `backend/`: Python FastAPI application
-- `frontend/`: React + TypeScript + Tailwind CSS application
+Built with a modern tech stack, APIVerse offers a seamless experience from registration to API key management and usage analytics.
 
-## Prerequisites
+## 🚀 Features
 
-- Python 3.8+
-- Node.js 16+
-- MySQL (Optional, defaults to SQLite for local demo)
+-   **Unified Dashboard**: A cyberpunk-inspired, high-end dashboard to monitor all your services in one place.
+-   **Multi-Channel Support**:
+    -   📧 **Email API**: High deliverability transactional emails.
+    -   💬 **SMS API**: Global SMS reach with low latency.
+    -   🤖 **AI Chatbot**: Integrated AI conversational agents.
+-   **Real-time Analytics**: Interactive SVG charts and data visualization for usage tracking.
+-   **Secure Authentication**: Robust user management with secure password hashing and JWT-based sessions.
+-   **Developer First**: Easy API key management and comprehensive documentation.
 
-## Getting Started
+## 🛠 Tech Stack
+
+### Frontend
+-   **Framework**: [React](https://reactjs.org/) (Vite)
+-   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+-   **Animations**: [Framer Motion](https://www.framer.com/motion/)
+-   **Icons**: [Lucide React](https://lucide.dev/)
+-   **Language**: TypeScript
+
+### Backend
+-   **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
+-   **Database**: MySQL (SQLAlchemy ORM)
+-   **Security**: Passlib (PBKDF2), OAuth2 (JWT)
+-   **Language**: Python 3.10+
+
+## 📦 Installation
+
+### Prerequisites
+-   Node.js (v16+)
+-   Python (v3.10+)
+-   MySQL Server
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   ```
-
-3. Activate the virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - Mac/Linux: `source venv/bin/activate`
-
-4. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. Run the server:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-   The API will be available at `http://localhost:8000`.
-   Docs are at `http://localhost:8000/docs`.
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+2.  Create a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Run the server:
+    ```bash
+    uvicorn app.main:app --reload
+    ```
 
 ### Frontend Setup
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## 🤝 Contributing
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
-   The app will be available at `http://localhost:5173`.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Features
+## 📄 License
 
-- **Landing Page**: Modern UI with animations and pricing tables.
-- **Dashboard**: User usage statistics and API key management.
-- **Authentication**: Mock registration and login flows.
-- **API**: FastAPI backend with SQLAlchemy models.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Configuration
+---
 
-- **Database**: By default, the backend uses SQLite (`apiverse.db`) for zero-config local development. To use MySQL, update `backend/app/database.py` and uncomment the MySQL connection string.
+*Built with ❤️ by [Spark Zou](https://github.com/sparkzou)*
