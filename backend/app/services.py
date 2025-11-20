@@ -15,7 +15,7 @@ from openai import OpenAI
 class EmailService:
     def __init__(self):
         self.api_key = os.getenv("SENDGRID_API_KEY")
-        self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@apiverse.com")
+        self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "support@smartbot.co.nz")
         if self.api_key:
             print(f"EmailService: Loaded API Key (starts with {self.api_key[:4]}...)")
             self.client = SendGridAPIClient(self.api_key)
