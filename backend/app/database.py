@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # For production/MySQL:
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:38LRh430@139.180.167.165:3306/APIVerse"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./apiverse.db")
 # For local development/demo (easier to run immediately):
 # SQLALCHEMY_DATABASE_URL = "sqlite:///./apiverse.db"
 
