@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import users, subscriptions
+from .routers import users, subscriptions, api_services
 
 # Create tables (for simple local dev without alembic run initially)
 Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(subscriptions.router)
+app.include_router(api_services.router)
 
 @app.get("/")
 def read_root():

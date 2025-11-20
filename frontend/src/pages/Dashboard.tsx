@@ -18,7 +18,8 @@ import {
   Trash2,
   ExternalLink,
   Code,
-  CheckCircle
+  CheckCircle,
+  Phone
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -205,7 +206,72 @@ const DocumentationSection = () => (
   </div>
 );
 
-const ServiceSection = ({ title, icon: Icon, color }: any) => (
+const ServiceSection = ({ title, icon: Icon, color, type }: any) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  
+  // Form states
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  
+  const [smsTo, setSmsTo] = useState('');
+  const [smsBody, setSmsBody] = useState('');
+  
+  const [voiceTo, setVoiceTo] = useState('');
+
+  const handleTest = async () => {
+    setIsLoading(true);
+    setResult(null);
+    try {
+        let endpoint = '';
+        let body = {};
+        
+        if (type === 'email') {
+            endpoint = '/api/v1/email/send';
+            body = { to_email: emailTo, subject: emailSubject, content: emailBody };
+        } else if (type === 'sms') {
+            endpoint = '/api/v1/sms/send';
+            body = { to_number: smsTo, body: smsBody };
+        } else if (type === 'voice') {
+            endpoint = '/api/v1/phone/call';
+            body = { to_number: voiceTo };
+        } else if (type === 'chatbot') {
+            endpoint = '/api/v1/chat/message';
+            body = { message: smsBody }; // Reusing smsBody for chat message
+        }
+
+        const response = await fetch(`http://localhost:8000${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        setResult(data);
+    } catch (error) {
+        setResult({ error: 'Failed to send request' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const getCurlExample = () => {
+    if (type === 'email') return `curl -X POST http://localhost:8000/api/v1/email/send \\
+  -H "Content-Type: application/json" \\
+  -d '{"to_email": "user@example.com", "subject": "Hello", "content": "World"}'`;
+    if (type === 'sms') return `curl -X POST http://localhost:8000/api/v1/sms/send \\
+  -H "Content-Type: application/json" \\
+  -d '{"to_number": "+1234567890", "body": "Hello from APIVerse"}'`;
+    if (type === 'voice') return `curl -X POST http://localhost:8000/api/v1/phone/call \\
+  -H "Content-Type: application/json" \\
+  -d '{"to_number": "+1234567890"}'`;
+    if (type === 'chatbot') return `curl -X POST http://localhost:8000/api/v1/chat/message \\
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Hello AI"}'`;
+    return '';
+  };
+
+  return (
   <div className="space-y-6">
     <div className="flex items-center space-x-3 mb-6">
       <div className={`p-3 rounded-xl bg-slate-800 ${color}`}>
@@ -213,50 +279,141 @@ const ServiceSection = ({ title, icon: Icon, color }: any) => (
       </div>
       <div>
         <h2 className="text-2xl font-bold text-white">{title}</h2>
-        <p className="text-slate-400 text-sm">Manage your {title.toLowerCase()} integration</p>
+        <p className="text-slate-400 text-sm">Manage and test your {title.toLowerCase()} integration</p>
       </div>
     </div>
     
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="glass-card p-6">
-        <h3 className="text-slate-400 text-sm font-medium mb-2">Success Rate</h3>
-        <div className="flex items-end space-x-2">
-          <span className="text-3xl font-bold text-white">99.9%</span>
-          <span className="text-green-400 text-sm mb-1 flex items-center"><CheckCircle className="h-3 w-3 mr-1" /> Optimal</span>
-        </div>
-      </div>
-      <div className="glass-card p-6">
-        <h3 className="text-slate-400 text-sm font-medium mb-2">Requests (24h)</h3>
-        <span className="text-3xl font-bold text-white">1,240</span>
-      </div>
-      <div className="glass-card p-6">
-        <h3 className="text-slate-400 text-sm font-medium mb-2">Avg. Latency</h3>
-        <span className="text-3xl font-bold text-white">45ms</span>
-      </div>
-    </div>
-
-    <div className="glass-card p-6">
-      <h3 className="text-lg font-bold text-white mb-4">Recent Logs</h3>
-      <div className="space-y-3">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-slate-300 font-mono text-sm">req_8f9s8d7f9s8d</span>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Test Console */}
+        <div className="glass-card p-6">
+            <h3 className="text-lg font-bold text-white mb-4">Test Console</h3>
+            <div className="space-y-4">
+                {type === 'email' && (
+                    <>
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">To Email</label>
+                            <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="user@example.com" />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Subject</label>
+                            <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="Subject" />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Content</label>
+                            <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="HTML Content" />
+                        </div>
+                    </>
+                )}
+                {(type === 'sms' || type === 'chatbot') && (
+                    <>
+                        {type === 'sms' && (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">To Number</label>
+                                <input type="text" value={smsTo} onChange={e => setSmsTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">{type === 'chatbot' ? 'Message' : 'Body'}</label>
+                            <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="Type your message..." />
+                        </div>
+                    </>
+                )}
+                {type === 'voice' && (
+                    <div>
+                        <label className="block text-xs text-slate-500 mb-1">To Number</label>
+                        <input type="text" value={voiceTo} onChange={e => setVoiceTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
+                    </div>
+                )}
+                
+                <button onClick={handleTest} disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                    {isLoading ? 'Sending...' : 'Send Request'}
+                </button>
+                
+                {result && (
+                    <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+                        <h4 className="text-xs font-bold text-slate-500 mb-2">Response</h4>
+                        <pre className="text-xs text-green-400 overflow-x-auto">{JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                )}
             </div>
-            <span className="text-slate-500 text-sm">200 OK</span>
-            <span className="text-slate-500 text-sm">124ms</span>
-            <span className="text-slate-500 text-sm">Just now</span>
-          </div>
-        ))}
-      </div>
+        </div>
+
+        {/* API Docs & Stats */}
+        <div className="space-y-6">
+            <div className="glass-card p-6">
+                <h3 className="text-lg font-bold text-white mb-4">API Integration</h3>
+                <p className="text-slate-400 text-sm mb-4">Use the following cURL command to integrate this service into your application.</p>
+                <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800 group relative">
+                    <code className="text-xs font-mono text-blue-400 whitespace-pre">
+                        {getCurlExample()}
+                    </code>
+                    <button className="absolute top-2 right-2 p-1 bg-slate-800 rounded text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Copy className="h-4 w-4" />
+                    </button>
+                </div>
+            </div>
+
+            <div className="glass-card p-6">
+                <h3 className="text-slate-400 text-sm font-medium mb-2">Service Status</h3>
+                <div className="flex items-center space-x-2 mb-4">
+                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-white font-medium">Operational</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                        <span className="text-slate-500 text-xs block">Success Rate</span>
+                        <span className="text-white font-bold">99.9%</span>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                        <span className="text-slate-500 text-xs block">Avg Latency</span>
+                        <span className="text-white font-bold">45ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
   </div>
 );
+}
 
-const BillingSection = () => (
+const BillingSection = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePayment = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/payment/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 1000, currency: 'usd' }) // $10.00
+      });
+      const data = await response.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        alert('Payment session created (Mock): ' + JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Payment failed', error);
+      alert('Payment failed to initialize');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
   <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
+    <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
+        <button 
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors disabled:opacity-50"
+        >
+            <CreditCard className="h-4 w-4 mr-2" />
+            {isProcessing ? 'Processing...' : 'Add Funds ($10)'}
+        </button>
+    </div>
     <div className="glass-card p-8 border-l-4 border-blue-500">
       <div className="flex justify-between items-start">
         <div>
@@ -305,7 +462,8 @@ const BillingSection = () => (
       </table>
     </div>
   </div>
-);
+  );
+};
 
 const SettingsSection = () => (
   <div className="space-y-6">
@@ -358,9 +516,10 @@ const Dashboard = () => {
       case 'dashboard': return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
       case 'keys': return <ApiKeysSection />;
       case 'docs': return <DocumentationSection />;
-      case 'email': return <ServiceSection title="Email API" icon={Mail} color="text-blue-400" />;
-      case 'sms': return <ServiceSection title="SMS API" icon={MessageSquare} color="text-purple-400" />;
-      case 'chatbot': return <ServiceSection title="Chatbot AI" icon={Bot} color="text-indigo-400" />;
+      case 'email': return <ServiceSection title="Email API" icon={Mail} color="text-blue-400" type="email" />;
+      case 'sms': return <ServiceSection title="SMS API" icon={MessageSquare} color="text-purple-400" type="sms" />;
+      case 'voice': return <ServiceSection title="Voice API" icon={Phone} color="text-pink-400" type="voice" />;
+      case 'chatbot': return <ServiceSection title="Chatbot AI" icon={Bot} color="text-indigo-400" type="chatbot" />;
       case 'billing': return <BillingSection />;
       case 'settings': return <SettingsSection />;
       default: return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
@@ -392,6 +551,7 @@ const Dashboard = () => {
             <div className="space-y-1">
               <SidebarItem icon={Mail} label="Email API" active={activeTab === 'email'} onClick={() => setActiveTab('email')} />
               <SidebarItem icon={MessageSquare} label="SMS API" active={activeTab === 'sms'} onClick={() => setActiveTab('sms')} />
+              <SidebarItem icon={Phone} label="Voice API" active={activeTab === 'voice'} onClick={() => setActiveTab('voice')} />
               <SidebarItem icon={Bot} label="Chatbot AI" active={activeTab === 'chatbot'} onClick={() => setActiveTab('chatbot')} />
             </div>
           </div>

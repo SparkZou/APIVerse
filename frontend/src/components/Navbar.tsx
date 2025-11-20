@@ -83,8 +83,8 @@ const Navbar = () => {
           
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              <a href="/#home" onClick={(e) => handleScroll(e, 'home')} className="hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer">Home</a>
-              <a href="/#pricing" onClick={(e) => handleScroll(e, 'pricing')} className="hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer">Pricing</a>
+              <Link to="/" className="hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer">Home</Link>
+              <Link to="/pricing" className="hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer">Pricing</Link>
               
               {isLoggedIn ? (
                 <Link to="/dashboard" className="hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</Link>
@@ -105,8 +105,8 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-slate-800">
-            <a href="/#home" onClick={(e) => handleScroll(e, 'home')} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-slate-700">Home</a>
-            <a href="/#pricing" onClick={(e) => handleScroll(e, 'pricing')} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-slate-700">Pricing</a>
+            <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-slate-700">Home</Link>
+            <Link to="/pricing" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-slate-700">Pricing</Link>
             {isLoggedIn ? (
               <Link to="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-slate-700">Dashboard</Link>
             ) : (

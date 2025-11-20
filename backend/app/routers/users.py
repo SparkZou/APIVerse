@@ -4,6 +4,9 @@ from .. import models, schemas, database
 from passlib.context import CryptContext
 from typing import List
 import secrets
+import os
+from datetime import datetime, timedelta
+from jose import jwt
 
 router = APIRouter(
     prefix="/users",
@@ -12,12 +15,25 @@ router = APIRouter(
 
 # Use pbkdf2_sha256 which is pure python and doesn't have C-extension version conflicts
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "AICLOUD0610")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 @router.post("/login")
 def login(user_credentials: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -28,7 +44,12 @@ def login(user_credentials: schemas.UserCreate, db: Session = Depends(database.g
     if not verify_password(user_credentials.password, user.hashed_password):
         raise HTTPException(status_code=403, detail="Invalid credentials")
     
-    return {"token": "mock_jwt_token", "user": user}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return {"token": access_token, "user": user}
 
 @router.post("/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
