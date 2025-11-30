@@ -19,7 +19,9 @@ import {
   ExternalLink,
   Code,
   CheckCircle,
-  Phone
+  Phone,
+  Building2,
+  Database
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -490,6 +492,252 @@ const SettingsSection = () => (
   </div>
 );
 
+// NZ Business Credit Report Section
+const NZCreditReportSection = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [nzbn, setNzbn] = useState('');
+  const [result, setResult] = useState<any>(null);
+
+  const handleSearch = async () => {
+    setIsLoading(true);
+    setResult(null);
+    // Mock API call - in real app would call backend
+    setTimeout(() => {
+      setResult({
+        company: {
+          nzbn: nzbn || "9429041530164",
+          name: "Example Ltd",
+          status: "Registered",
+          incorporation_date: "2018-03-15"
+        },
+        credit_score: {
+          score: 78,
+          rating: "Good",
+          risk_level: "Low",
+          payment_index: 92
+        },
+        financials: {
+          revenue: 2450000,
+          assets: 890000,
+          liabilities: 320000,
+          equity: 570000
+        },
+        compliance: {
+          annual_return_filed: true,
+          gst_registered: true,
+          court_judgments: 0
+        }
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-3 rounded-xl bg-emerald-500/20">
+          <Building2 className="h-8 w-8 text-emerald-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white">NZ Business Credit Report API</h2>
+          <p className="text-slate-400 text-sm">Access comprehensive credit reports for New Zealand businesses</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Search Console */}
+        <div className="glass-card p-6">
+          <h3 className="text-lg font-bold text-white mb-4">Search Company</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">NZBN or Company Name</label>
+              <input 
+                type="text" 
+                value={nzbn} 
+                onChange={e => setNzbn(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" 
+                placeholder="e.g. 9429041530164 or Example Ltd" 
+              />
+            </div>
+            <button 
+              onClick={handleSearch} 
+              disabled={isLoading} 
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Searching...' : 'Search Company'}
+            </button>
+
+            {result && (
+              <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-slate-500">Credit Report</h4>
+                  <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">200 OK</span>
+                </div>
+                <pre className="text-xs text-emerald-400 overflow-x-auto">{JSON.stringify(result, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* API Docs */}
+        <div className="space-y-6">
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-bold text-white mb-4">API Integration</h3>
+            <p className="text-slate-400 text-sm mb-4">Query NZ company credit data using the API.</p>
+            <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800">
+              <code className="text-xs font-mono text-emerald-400 whitespace-pre">
+{`curl -X GET http://localhost:8000/api/v1/nz-credit/lookup \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{"nzbn": "9429041530164"}'`}
+              </code>
+            </div>
+          </div>
+
+          <div className="glass-card p-6">
+            <h3 className="text-slate-400 text-sm font-medium mb-2">Available Data Points</h3>
+            <ul className="space-y-2 text-sm">
+              {[
+                'Company credit score & risk assessment',
+                'Director & shareholder information',
+                'Financial statements & annual returns',
+                'Court judgments & insolvency records',
+                'Companies Office registration data'
+              ].map((item, i) => (
+                <li key={i} className="flex items-center text-slate-300">
+                  <CheckCircle className="h-4 w-4 text-emerald-500 mr-2" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Text2DB Section
+const Text2DBSection = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState<any>(null);
+
+  const handleQuery = async () => {
+    setIsLoading(true);
+    setResult(null);
+    // Mock API call
+    setTimeout(() => {
+      setResult({
+        natural_language: query || "Show me all customers from Auckland who spent more than $5000 last month",
+        generated_sql: `SELECT * FROM customers 
+WHERE city = 'Auckland' 
+  AND customer_id IN (
+    SELECT customer_id 
+    FROM orders 
+    WHERE order_date >= '2025-10-01' 
+      AND order_date < '2025-11-01'
+    GROUP BY customer_id 
+    HAVING SUM(total) > 5000
+  );`,
+        execution_time: "23ms",
+        rows_returned: 23
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-3 rounded-xl bg-purple-500/20">
+          <Database className="h-8 w-8 text-purple-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white">Text2DB Local Integration</h2>
+          <p className="text-slate-400 text-sm">Transform natural language queries into SQL with on-premise deployment</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Query Console */}
+        <div className="glass-card p-6">
+          <h3 className="text-lg font-bold text-white mb-4">Natural Language Query</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Enter your question in plain English</label>
+              <textarea 
+                value={query} 
+                onChange={e => setQuery(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" 
+                placeholder="e.g. Show me all customers from Auckland who spent more than $5000 last month" 
+              />
+            </div>
+            <button 
+              onClick={handleQuery} 
+              disabled={isLoading} 
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Generating SQL...' : 'Generate SQL'}
+            </button>
+
+            {result && (
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-slate-900 rounded-lg border border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-500 mb-2">Generated SQL</h4>
+                  <pre className="text-xs text-blue-400 overflow-x-auto whitespace-pre-wrap">{result.generated_sql}</pre>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1 p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-xs block">Execution Time</span>
+                    <span className="text-white font-bold">{result.execution_time}</span>
+                  </div>
+                  <div className="flex-1 p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-xs block">Rows Returned</span>
+                    <span className="text-white font-bold">{result.rows_returned}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Features & Integration */}
+        <div className="space-y-6">
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-bold text-white mb-4">On-Premise Features</h3>
+            <ul className="space-y-2 text-sm">
+              {[
+                'Deploy on your own infrastructure',
+                'Supports MySQL, PostgreSQL, SQL Server',
+                'Natural language to SQL conversion',
+                'Zero data leaves your network',
+                'Custom schema learning & optimization',
+                'Multi-language support (EN, ZH, MI)'
+              ].map((item, i) => (
+                <li key={i} className="flex items-center text-slate-300">
+                  <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-bold text-white mb-4">Deployment Options</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {['Docker', 'Kubernetes', 'VM Image', 'Bare Metal'].map(option => (
+                <div key={option} className="border border-slate-700 rounded-lg p-3 flex items-center justify-center hover:bg-slate-800 transition-colors cursor-pointer">
+                  <span className="text-slate-300 text-sm font-medium">{option}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const navigate = useNavigate();
@@ -520,6 +768,8 @@ const Dashboard = () => {
       case 'sms': return <ServiceSection title="SMS API" icon={MessageSquare} color="text-purple-400" type="sms" />;
       case 'voice': return <ServiceSection title="Voice API" icon={Phone} color="text-pink-400" type="voice" />;
       case 'chatbot': return <ServiceSection title="Chatbot AI" icon={Bot} color="text-indigo-400" type="chatbot" />;
+      case 'nzcredit': return <NZCreditReportSection />;
+      case 'text2db': return <Text2DBSection />;
       case 'billing': return <BillingSection />;
       case 'settings': return <SettingsSection />;
       default: return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
@@ -553,6 +803,14 @@ const Dashboard = () => {
               <SidebarItem icon={MessageSquare} label="SMS API" active={activeTab === 'sms'} onClick={() => setActiveTab('sms')} />
               <SidebarItem icon={Phone} label="Voice API" active={activeTab === 'voice'} onClick={() => setActiveTab('voice')} />
               <SidebarItem icon={Bot} label="Chatbot AI" active={activeTab === 'chatbot'} onClick={() => setActiveTab('chatbot')} />
+            </div>
+          </div>
+
+          <div>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Data Services</p>
+            <div className="space-y-1">
+              <SidebarItem icon={Building2} label="NZ Credit Report" active={activeTab === 'nzcredit'} onClick={() => setActiveTab('nzcredit')} />
+              <SidebarItem icon={Database} label="Text2DB" active={activeTab === 'text2db'} onClick={() => setActiveTab('text2db')} />
             </div>
           </div>
 
