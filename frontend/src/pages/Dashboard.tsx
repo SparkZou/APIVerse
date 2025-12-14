@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  Key, 
-  FileText, 
-  Mail, 
-  MessageSquare, 
-  Bot, 
-  CreditCard, 
-  LogOut, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Key,
+  FileText,
+  Mail,
+  MessageSquare,
+  Bot,
+  CreditCard,
+  LogOut,
+  Bell,
   Settings,
   ChevronRight,
   Zap,
@@ -25,15 +25,16 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import FileSearchPage from './FileSearchPage';
+import WidgetConfigPage from './WidgetConfigPage';
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick }: any) => (
-  <button 
+  <button
     onClick={onClick}
-    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-      active 
-        ? 'bg-blue-600/10 text-blue-400 border-r-2 border-blue-500' 
-        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-    }`}
+    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${active
+      ? 'bg-blue-600/10 text-blue-400 border-r-2 border-blue-500'
+      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+      }`}
   >
     <Icon className="h-5 w-5" />
     <span className="font-medium text-sm">{label}</span>
@@ -80,7 +81,7 @@ const OverviewSection = ({ usageData, maxUsage }: any) => (
               <div key={i} className="w-full h-px bg-slate-800/50 border-t border-dashed border-slate-800"></div>
             ))}
           </div>
-          <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+          <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 256" preserveAspectRatio="none">
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
@@ -88,15 +89,16 @@ const OverviewSection = ({ usageData, maxUsage }: any) => (
               </linearGradient>
             </defs>
             <path
-              d={`M0,${256 - (usageData[0]/maxUsage)*200} ${usageData.map((d: number, i: number) => `L${(i/(usageData.length-1))*100}%,${256 - (d/maxUsage)*200}`).join(' ')}`}
+              d={`M0,${256 - (usageData[0] / maxUsage) * 200} ${usageData.map((d: number, i: number) => `L${(i / (usageData.length - 1)) * 100},${256 - (d / maxUsage) * 200}`).join(' ')}`}
               fill="none"
               stroke="#3b82f6"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
             />
             <path
-              d={`M0,${256 - (usageData[0]/maxUsage)*200} ${usageData.map((d: number, i: number) => `L${(i/(usageData.length-1))*100}%,${256 - (d/maxUsage)*200}`).join(' ')} V256 H0 Z`}
+              d={`M0,${256 - (usageData[0] / maxUsage) * 200} ${usageData.map((d: number, i: number) => `L${(i / (usageData.length - 1)) * 100},${256 - (d / maxUsage) * 200}`).join(' ')} V256 H0 Z`}
               fill="url(#gradient)"
             />
           </svg>
@@ -117,7 +119,7 @@ const OverviewSection = ({ usageData, maxUsage }: any) => (
           ].map((item) => (
             <div key={item.label} className="flex flex-col items-center group">
               <div className="relative w-12 bg-slate-800 rounded-t-lg overflow-hidden h-48 flex items-end">
-                <motion.div 
+                <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${item.value}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
@@ -211,49 +213,49 @@ const DocumentationSection = () => (
 const ServiceSection = ({ title, icon: Icon, color, type }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  
+
   // Form states
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
-  
+
   const [smsTo, setSmsTo] = useState('');
   const [smsBody, setSmsBody] = useState('');
-  
+
   const [voiceTo, setVoiceTo] = useState('');
 
   const handleTest = async () => {
     setIsLoading(true);
     setResult(null);
     try {
-        let endpoint = '';
-        let body = {};
-        
-        if (type === 'email') {
-            endpoint = '/api/v1/email/send';
-            body = { to_email: emailTo, subject: emailSubject, content: emailBody };
-        } else if (type === 'sms') {
-            endpoint = '/api/v1/sms/send';
-            body = { to_number: smsTo, body: smsBody };
-        } else if (type === 'voice') {
-            endpoint = '/api/v1/phone/call';
-            body = { to_number: voiceTo };
-        } else if (type === 'chatbot') {
-            endpoint = '/api/v1/chat/message';
-            body = { message: smsBody }; // Reusing smsBody for chat message
-        }
+      let endpoint = '';
+      let body = {};
 
-        const response = await fetch(`http://localhost:8000${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const data = await response.json();
-        setResult(data);
+      if (type === 'email') {
+        endpoint = '/api/v1/email/send';
+        body = { to_email: emailTo, subject: emailSubject, content: emailBody };
+      } else if (type === 'sms') {
+        endpoint = '/api/v1/sms/send';
+        body = { to_number: smsTo, body: smsBody };
+      } else if (type === 'voice') {
+        endpoint = '/api/v1/phone/call';
+        body = { to_number: voiceTo };
+      } else if (type === 'chatbot') {
+        endpoint = '/api/v1/chat/message';
+        body = { message: smsBody }; // Reusing smsBody for chat message
+      }
+
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json();
+      setResult(data);
     } catch (error) {
-        setResult({ error: 'Failed to send request' });
+      setResult({ error: 'Failed to send request' });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -274,108 +276,108 @@ const ServiceSection = ({ title, icon: Icon, color, type }: any) => {
   };
 
   return (
-  <div className="space-y-6">
-    <div className="flex items-center space-x-3 mb-6">
-      <div className={`p-3 rounded-xl bg-slate-800 ${color}`}>
-        <Icon className="h-8 w-8" />
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className={`p-3 rounded-xl bg-slate-800 ${color}`}>
+          <Icon className="h-8 w-8" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <p className="text-slate-400 text-sm">Manage and test your {title.toLowerCase()} integration</p>
+        </div>
       </div>
-      <div>
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
-        <p className="text-slate-400 text-sm">Manage and test your {title.toLowerCase()} integration</p>
-      </div>
-    </div>
-    
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Test Console */}
         <div className="glass-card p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Test Console</h3>
-            <div className="space-y-4">
-                {type === 'email' && (
-                    <>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">To Email</label>
-                            <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="user@example.com" />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Subject</label>
-                            <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="Subject" />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Content</label>
-                            <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="HTML Content" />
-                        </div>
-                    </>
+          <h3 className="text-lg font-bold text-white mb-4">Test Console</h3>
+          <div className="space-y-4">
+            {type === 'email' && (
+              <>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">To Email</label>
+                  <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="user@example.com" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Subject</label>
+                  <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="Subject" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Content</label>
+                  <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="HTML Content" />
+                </div>
+              </>
+            )}
+            {(type === 'sms' || type === 'chatbot') && (
+              <>
+                {type === 'sms' && (
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">To Number</label>
+                    <input type="text" value={smsTo} onChange={e => setSmsTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
+                  </div>
                 )}
-                {(type === 'sms' || type === 'chatbot') && (
-                    <>
-                        {type === 'sms' && (
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">To Number</label>
-                                <input type="text" value={smsTo} onChange={e => setSmsTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
-                            </div>
-                        )}
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">{type === 'chatbot' ? 'Message' : 'Body'}</label>
-                            <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="Type your message..." />
-                        </div>
-                    </>
-                )}
-                {type === 'voice' && (
-                    <div>
-                        <label className="block text-xs text-slate-500 mb-1">To Number</label>
-                        <input type="text" value={voiceTo} onChange={e => setVoiceTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
-                    </div>
-                )}
-                
-                <button onClick={handleTest} disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                    {isLoading ? 'Sending...' : 'Send Request'}
-                </button>
-                
-                {result && (
-                    <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-                        <h4 className="text-xs font-bold text-slate-500 mb-2">Response</h4>
-                        <pre className="text-xs text-green-400 overflow-x-auto">{JSON.stringify(result, null, 2)}</pre>
-                    </div>
-                )}
-            </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">{type === 'chatbot' ? 'Message' : 'Body'}</label>
+                  <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" placeholder="Type your message..." />
+                </div>
+              </>
+            )}
+            {type === 'voice' && (
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">To Number</label>
+                <input type="text" value={voiceTo} onChange={e => setVoiceTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" placeholder="+1234567890" />
+              </div>
+            )}
+
+            <button onClick={handleTest} disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+              {isLoading ? 'Sending...' : 'Send Request'}
+            </button>
+
+            {result && (
+              <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+                <h4 className="text-xs font-bold text-slate-500 mb-2">Response</h4>
+                <pre className="text-xs text-green-400 overflow-x-auto">{JSON.stringify(result, null, 2)}</pre>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* API Docs & Stats */}
         <div className="space-y-6">
-            <div className="glass-card p-6">
-                <h3 className="text-lg font-bold text-white mb-4">API Integration</h3>
-                <p className="text-slate-400 text-sm mb-4">Use the following cURL command to integrate this service into your application.</p>
-                <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800 group relative">
-                    <code className="text-xs font-mono text-blue-400 whitespace-pre">
-                        {getCurlExample()}
-                    </code>
-                    <button className="absolute top-2 right-2 p-1 bg-slate-800 rounded text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Copy className="h-4 w-4" />
-                    </button>
-                </div>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-bold text-white mb-4">API Integration</h3>
+            <p className="text-slate-400 text-sm mb-4">Use the following cURL command to integrate this service into your application.</p>
+            <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800 group relative">
+              <code className="text-xs font-mono text-blue-400 whitespace-pre">
+                {getCurlExample()}
+              </code>
+              <button className="absolute top-2 right-2 p-1 bg-slate-800 rounded text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Copy className="h-4 w-4" />
+              </button>
             </div>
+          </div>
 
-            <div className="glass-card p-6">
-                <h3 className="text-slate-400 text-sm font-medium mb-2">Service Status</h3>
-                <div className="flex items-center space-x-2 mb-4">
-                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-white font-medium">Operational</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-900/50 p-3 rounded-lg">
-                        <span className="text-slate-500 text-xs block">Success Rate</span>
-                        <span className="text-white font-bold">99.9%</span>
-                    </div>
-                    <div className="bg-slate-900/50 p-3 rounded-lg">
-                        <span className="text-slate-500 text-xs block">Avg Latency</span>
-                        <span className="text-white font-bold">45ms</span>
-                    </div>
-                </div>
+          <div className="glass-card p-6">
+            <h3 className="text-slate-400 text-sm font-medium mb-2">Service Status</h3>
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-white font-medium">Operational</span>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-900/50 p-3 rounded-lg">
+                <span className="text-slate-500 text-xs block">Success Rate</span>
+                <span className="text-white font-bold">99.9%</span>
+              </div>
+              <div className="bg-slate-900/50 p-3 rounded-lg">
+                <span className="text-slate-500 text-xs block">Avg Latency</span>
+                <span className="text-white font-bold">45ms</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
-  </div>
-);
+  );
 }
 
 const BillingSection = () => {
@@ -404,66 +406,66 @@ const BillingSection = () => {
   };
 
   return (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
-        <button 
-            onClick={handlePayment}
-            disabled={isProcessing}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors disabled:opacity-50"
+        <button
+          onClick={handlePayment}
+          disabled={isProcessing}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors disabled:opacity-50"
         >
-            <CreditCard className="h-4 w-4 mr-2" />
-            {isProcessing ? 'Processing...' : 'Add Funds ($10)'}
+          <CreditCard className="h-4 w-4 mr-2" />
+          {isProcessing ? 'Processing...' : 'Add Funds ($10)'}
         </button>
-    </div>
-    <div className="glass-card p-8 border-l-4 border-blue-500">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-xl font-bold text-white">Enterprise Plan</h3>
-          <p className="text-slate-400 mt-1">Billed monthly on the 24th</p>
-        </div>
-        <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">Active</span>
       </div>
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-800 pt-6">
-        <div>
-          <span className="text-slate-500 text-sm block">Monthly Total</span>
-          <span className="text-2xl font-bold text-white">$99.00</span>
+      <div className="glass-card p-8 border-l-4 border-blue-500">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="text-xl font-bold text-white">Enterprise Plan</h3>
+            <p className="text-slate-400 mt-1">Billed monthly on the 24th</p>
+          </div>
+          <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">Active</span>
         </div>
-        <div>
-          <span className="text-slate-500 text-sm block">Next Invoice</span>
-          <span className="text-white font-medium">Nov 24, 2025</span>
-        </div>
-        <div>
-          <span className="text-slate-500 text-sm block">Payment Method</span>
-          <span className="text-white font-medium flex items-center"><CreditCard className="h-4 w-4 mr-2" /> •••• 4242</span>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-800 pt-6">
+          <div>
+            <span className="text-slate-500 text-sm block">Monthly Total</span>
+            <span className="text-2xl font-bold text-white">$99.00</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-sm block">Next Invoice</span>
+            <span className="text-white font-medium">Nov 24, 2025</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-sm block">Payment Method</span>
+            <span className="text-white font-medium flex items-center"><CreditCard className="h-4 w-4 mr-2" /> •••• 4242</span>
+          </div>
         </div>
       </div>
+
+      <h3 className="text-lg font-bold text-white mt-8">Invoice History</h3>
+      <div className="glass-card overflow-hidden">
+        <table className="w-full text-left text-sm text-slate-400">
+          <thead className="bg-slate-900/50">
+            <tr>
+              <th className="px-6 py-3">Invoice ID</th>
+              <th className="px-6 py-3">Date</th>
+              <th className="px-6 py-3">Amount</th>
+              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3 text-right">Download</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            <tr>
+              <td className="px-6 py-4 font-mono">INV-2025-001</td>
+              <td className="px-6 py-4">Oct 24, 2025</td>
+              <td className="px-6 py-4">$99.00</td>
+              <td className="px-6 py-4 text-green-400">Paid</td>
+              <td className="px-6 py-4 text-right"><ExternalLink className="h-4 w-4 ml-auto cursor-pointer hover:text-white" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    
-    <h3 className="text-lg font-bold text-white mt-8">Invoice History</h3>
-    <div className="glass-card overflow-hidden">
-      <table className="w-full text-left text-sm text-slate-400">
-        <thead className="bg-slate-900/50">
-          <tr>
-            <th className="px-6 py-3">Invoice ID</th>
-            <th className="px-6 py-3">Date</th>
-            <th className="px-6 py-3">Amount</th>
-            <th className="px-6 py-3">Status</th>
-            <th className="px-6 py-3 text-right">Download</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800">
-          <tr>
-            <td className="px-6 py-4 font-mono">INV-2025-001</td>
-            <td className="px-6 py-4">Oct 24, 2025</td>
-            <td className="px-6 py-4">$99.00</td>
-            <td className="px-6 py-4 text-green-400">Paid</td>
-            <td className="px-6 py-4 text-right"><ExternalLink className="h-4 w-4 ml-auto cursor-pointer hover:text-white" /></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
   );
 };
 
@@ -551,17 +553,17 @@ const NZCreditReportSection = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-xs text-slate-500 mb-1">NZBN or Company Name</label>
-              <input 
-                type="text" 
-                value={nzbn} 
-                onChange={e => setNzbn(e.target.value)} 
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" 
-                placeholder="e.g. 9429041530164 or Example Ltd" 
+              <input
+                type="text"
+                value={nzbn}
+                onChange={e => setNzbn(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                placeholder="e.g. 9429041530164 or Example Ltd"
               />
             </div>
-            <button 
-              onClick={handleSearch} 
-              disabled={isLoading} 
+            <button
+              onClick={handleSearch}
+              disabled={isLoading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Searching...' : 'Search Company'}
@@ -586,7 +588,7 @@ const NZCreditReportSection = () => {
             <p className="text-slate-400 text-sm mb-4">Query NZ company credit data using the API.</p>
             <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800">
               <code className="text-xs font-mono text-emerald-400 whitespace-pre">
-{`curl -X GET http://localhost:8000/api/v1/nz-credit/lookup \\
+                {`curl -X GET http://localhost:8000/api/v1/nz-credit/lookup \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{"nzbn": "9429041530164"}'`}
               </code>
@@ -665,16 +667,16 @@ WHERE city = 'Auckland'
           <div className="space-y-4">
             <div>
               <label className="block text-xs text-slate-500 mb-1">Enter your question in plain English</label>
-              <textarea 
-                value={query} 
-                onChange={e => setQuery(e.target.value)} 
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24" 
-                placeholder="e.g. Show me all customers from Auckland who spent more than $5000 last month" 
+              <textarea
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm h-24"
+                placeholder="e.g. Show me all customers from Auckland who spent more than $5000 last month"
               />
             </div>
-            <button 
-              onClick={handleQuery} 
-              disabled={isLoading} 
+            <button
+              onClick={handleQuery}
+              disabled={isLoading}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Generating SQL...' : 'Generate SQL'}
@@ -772,6 +774,8 @@ const Dashboard = () => {
       case 'text2db': return <Text2DBSection />;
       case 'billing': return <BillingSection />;
       case 'settings': return <SettingsSection />;
+      case 'filesearch': return <FileSearchPage />;
+      case 'widget': return <WidgetConfigPage />;
       default: return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
     }
   };
@@ -796,14 +800,14 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div>
-            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Services</p>
-            <div className="space-y-1">
-              <SidebarItem icon={Mail} label="Email API" active={activeTab === 'email'} onClick={() => setActiveTab('email')} />
-              <SidebarItem icon={MessageSquare} label="SMS API" active={activeTab === 'sms'} onClick={() => setActiveTab('sms')} />
-              <SidebarItem icon={Phone} label="Voice API" active={activeTab === 'voice'} onClick={() => setActiveTab('voice')} />
-              <SidebarItem icon={Bot} label="Chatbot AI" active={activeTab === 'chatbot'} onClick={() => setActiveTab('chatbot')} />
-            </div>
+          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Services</p>
+          <div className="space-y-1">
+            <SidebarItem icon={Database} label="Knowledge Base" active={activeTab === 'filesearch'} onClick={() => setActiveTab('filesearch')} />
+            <SidebarItem icon={Code} label="Widget Integration" active={activeTab === 'widget'} onClick={() => setActiveTab('widget')} />
+            <SidebarItem icon={Mail} label="Email API" active={activeTab === 'email'} onClick={() => setActiveTab('email')} />
+            <SidebarItem icon={MessageSquare} label="SMS API" active={activeTab === 'sms'} onClick={() => setActiveTab('sms')} />
+            <SidebarItem icon={Phone} label="Voice API" active={activeTab === 'voice'} onClick={() => setActiveTab('voice')} />
+            <SidebarItem icon={Bot} label="Chatbot AI" active={activeTab === 'chatbot'} onClick={() => setActiveTab('chatbot')} />
           </div>
 
           <div>
@@ -860,7 +864,7 @@ const Dashboard = () => {
               <p className="text-slate-400 mt-1">Here is your platform overview for today.</p>
             </div>
           )}
-          
+
           {renderContent()}
         </div>
       </main>

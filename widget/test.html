@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIVerse Widget Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .feature h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .feature p {
+            margin: 0;
+            font-size: 14px;
+        }
+        .instructions {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 30px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+    <!-- Load Widget CSS -->
+    <link rel="stylesheet" href="./dist/style.css">
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🚀 APIVerse Widget Demo</h1>
+        <p>This page demonstrates the APIVerse AI Chat Widget integration. Click the chat button in the bottom-right corner to start a conversation!</p>
+        
+        <div class="feature-list">
+            <div class="feature">
+                <h3>📄 Document Search</h3>
+                <p>Search through your uploaded documents using natural language queries.</p>
+            </div>
+            <div class="feature">
+                <h3>🤖 AI-Powered</h3>
+                <p>Powered by Google Gemini for intelligent document understanding.</p>
+            </div>
+            <div class="feature">
+                <h3>⚡ Easy Integration</h3>
+                <p>Just add a script tag and configure your API key.</p>
+            </div>
+            <div class="feature">
+                <h3>🎨 Customizable</h3>
+                <p>Match the widget to your brand with custom colors and themes.</p>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>Integration Instructions</h3>
+            <p>To integrate this widget into your website, add the following code:</p>
+            <pre><code>&lt;link rel="stylesheet" href="apiverse-widget/style.css"&gt;
+&lt;script src="apiverse-widget.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  APIVerseWidget.init({
+    apiKey: 'YOUR_API_KEY',
+    knowledgeBaseId: 10,  // Your KB ID
+    apiUrl: 'http://localhost:8000/api/widget'
+  });
+&lt;/script&gt;</code></pre>
+        </div>
+    </div>
+
+    <!-- Load Widget JS -->
+    <script src="./dist/apiverse-widget.js"></script>
+    <script>
+        // Initialize the widget
+        // Replace with your actual API key from the dashboard
+        APIVerseWidget.init({
+            apiKey: 'sk_test_demo_key',  // Get this from Dashboard > API Keys
+            knowledgeBaseId: 10,          // Your Knowledge Base ID
+            apiUrl: 'http://localhost:8000/api/widget'
+        });
+    </script>
+</body>
+</html>

@@ -226,4 +226,3 @@ email_service = EmailService()
 twilio_service = TwilioService()
 chatbot_service = ChatbotService()
 payment_service = PaymentService()
-

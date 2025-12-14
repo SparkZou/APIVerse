@@ -82,9 +82,25 @@ const Register = () => {
           console.error('Subscription creation failed');
         }
 
-        // Save auth token (mock)
-        localStorage.setItem('token', 'mock_jwt_token');
-        localStorage.setItem('user', JSON.stringify(userData));
+        // 3. Auto-login after registration to get real JWT token
+        const loginResponse = await fetch('http://localhost:8000/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            company_name: formData.company
+          }),
+        });
+
+        if (loginResponse.ok) {
+          const loginData = await loginResponse.json();
+          localStorage.setItem('token', loginData.token);
+          localStorage.setItem('user', JSON.stringify(loginData.user));
+        } else {
+          // Fallback: store user data without token (user will need to login)
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
 
         showToast('Account created successfully!', 'success');
         setTimeout(() => {

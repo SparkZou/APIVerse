@@ -23,6 +23,7 @@ class User(Base):
     api_keys = relationship("APIKey", back_populates="user")
     payments = relationship("Payment", back_populates="user")
     usage_logs = relationship("UsageLog", back_populates="user")
+    knowledge_bases = relationship("KnowledgeBase", back_populates="user")
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -71,3 +72,40 @@ class UsageLog(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="usage_logs")
+
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_bases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String(255))
+    description = Column(String(500))
+    google_vector_store_id = Column(String(255))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="knowledge_bases")
+    documents = relationship("Document", back_populates="knowledge_base")
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id"))
+    filename = Column(String(255))
+    google_file_id = Column(String(255))
+    file_size = Column(Integer)
+    mime_type = Column(String(100))
+    status = Column(String(50)) # pending, processing, active, failed
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    knowledge_base = relationship("KnowledgeBase", back_populates="documents")
+
+class FileSearchQuery(Base):
+    __tablename__ = "file_search_queries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id"))
+    query_text = Column(String(5000)) # Long text support
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

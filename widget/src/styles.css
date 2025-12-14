@@ -1,0 +1,135 @@
+/* Scoped styles for APIVerse Widget */
+#apiverse-widget-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  z-index: 9999;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  color: #333;
+}
+
+.apiverse-widget-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background-color 0.2s;
+  color: white;
+}
+
+.apiverse-widget-button:hover {
+  transform: scale(1.05);
+  background-color: #4f46e5;
+}
+
+.apiverse-widget-window {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 350px;
+  height: 500px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  border: 1px solid #e5e7eb;
+}
+
+.apiverse-widget-window.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.apiverse-widget-header {
+  padding: 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.apiverse-widget-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #111827;
+}
+
+.apiverse-widget-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apiverse-widget-input-area {
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 8px;
+}
+
+.apiverse-widget-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  outline: none;
+  font-size: 14px;
+}
+
+.apiverse-widget-input:focus {
+  border-color: #6366f1;
+}
+
+.apiverse-widget-send {
+  background: none;
+  border: none;
+  color: #6366f1;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.apiverse-message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 85%;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.apiverse-message.user {
+  background-color: #6366f1;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.apiverse-message.bot {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.apiverse-loading {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 8px;
+}

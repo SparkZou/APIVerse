@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Register from './pages/Register';
 import Pricing from './pages/Pricing';
+import FileSearchPage from './pages/FileSearchPage';
+import WidgetConfigPage from './pages/WidgetConfigPage';
 import { ToastProvider } from './components/ToastProvider';
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Register />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/file-search" element={<FileSearchPage />} />
+            <Route path="/widget-config" element={<WidgetConfigPage />} />
           </Routes>
         </div>
       </ToastProvider>
