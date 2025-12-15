@@ -302,6 +302,8 @@ Please provide a helpful and relevant response."""
 
     async def search_stream(self, db: Session, user_id: int, knowledge_base_id: int, query_text: str):
         """Perform streaming semantic search using Google AI - yields text chunks"""
+        import asyncio
+        
         # 1. Check quota
         self.check_quota(db, user_id)
         
@@ -393,9 +395,12 @@ Please provide a helpful and relevant response."""
                 stream=True  # Enable streaming!
             )
             
+            # Iterate through chunks and yield with small delay for proper streaming
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
+                    # Small delay to ensure proper chunk delivery
+                    await asyncio.sleep(0.01)
                     
         except Exception as e:
             error_msg = str(e)

@@ -8,6 +8,69 @@ const widgetStyles = `
   right: 20px;
 }
 
+/* Mobile responsive styles */
+@media (max-width: 480px) {
+  #apiverse-widget-container {
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .apiverse-widget-button {
+    width: 54px;
+    height: 54px;
+  }
+  
+  .apiverse-widget-window {
+    position: fixed !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 85vh !important;
+    max-height: 85vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+  
+  .apiverse-widget-window.open {
+    transform: translateY(0) scale(1);
+  }
+  
+  .apiverse-widget-header {
+    padding: 14px 16px;
+    border-radius: 20px 20px 0 0;
+  }
+  
+  .apiverse-widget-content {
+    padding: 12px;
+  }
+  
+  .apiverse-widget-input-area {
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  
+  .apiverse-widget-input {
+    padding: 10px 14px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .apiverse-widget-send {
+    padding: 10px 16px;
+  }
+  
+  .apiverse-message {
+    max-width: 90%;
+    font-size: 15px;
+  }
+  
+  .apiverse-powered {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
 .apiverse-widget-button {
   width: 60px;
   height: 60px;
@@ -33,7 +96,9 @@ const widgetStyles = `
   bottom: 75px;
   right: 0;
   width: 380px;
+  max-width: calc(100vw - 40px);
   height: 520px;
+  max-height: calc(100vh - 120px);
   background: white;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
