@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Annotated, Optional
+import json
 from ..database import SessionLocal
 from ..models import APIKey, User, KnowledgeBase
 from ..schemas import FileSearchResponse, SearchResult
@@ -105,4 +107,55 @@ def widget_search(
     return FileSearchResponse(
         results=results,
         remaining_quota=remaining
+    )
+
+@router.post("/search/stream")
+async def widget_search_stream(
+    request: WidgetSearchRequest,
+    user: Annotated[User, Depends(verify_api_key)],
+    db: db_dependency
+):
+    """
+    Streaming search endpoint for the widget - provides typewriter effect.
+    Usage is charged to the owner of the API Key.
+    """
+    if not request.knowledge_base_id:
+        # Try to find a default KB
+        kb = db.query(KnowledgeBase).filter(KnowledgeBase.user_id == user.id).first()
+        if not kb:
+            raise HTTPException(status_code=400, detail="No knowledge base specified or found")
+        request.knowledge_base_id = kb.id
+    else:
+        # Verify KB belongs to user
+        kb = db.query(KnowledgeBase).filter(
+            KnowledgeBase.id == request.knowledge_base_id,
+            KnowledgeBase.user_id == user.id
+        ).first()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not accessible")
+
+    async def generate():
+        try:
+            async for chunk in file_search_service.search_stream(
+                db,
+                user.id,
+                request.knowledge_base_id,
+                request.query
+            ):
+                # Send as Server-Sent Events format
+                yield f"data: {json.dumps({'text': chunk})}\n\n"
+            
+            # Send done signal
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
     )

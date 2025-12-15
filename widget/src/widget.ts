@@ -149,6 +149,20 @@ const widgetStyles = `
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Streaming cursor animation */
+.apiverse-message .cursor {
+  display: inline-block;
+  color: #6366f1;
+  animation: blink 0.8s infinite;
+  margin-left: 2px;
+  font-weight: normal;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
 .apiverse-message.user {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
@@ -163,6 +177,86 @@ const widgetStyles = `
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
+
+/* Markdown styling for bot messages */
+.apiverse-message.bot strong {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.apiverse-message.bot em {
+  font-style: italic;
+  color: #6b7280;
+}
+
+.apiverse-message.bot ul, .apiverse-message.bot ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.apiverse-message.bot li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.apiverse-message.bot li::marker {
+  color: #6366f1;
+}
+
+.apiverse-message.bot p {
+  margin: 0 0 8px 0;
+}
+
+.apiverse-message.bot p:last-child {
+  margin-bottom: 0;
+}
+
+.apiverse-message.bot code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: #e11d48;
+}
+
+.apiverse-message.bot pre {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.apiverse-message.bot pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.apiverse-message.bot blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.apiverse-message.bot a {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+.apiverse-message.bot h1, .apiverse-message.bot h2, .apiverse-message.bot h3 {
+  color: #1f2937;
+  margin: 12px 0 8px 0;
+  font-weight: 600;
+}
+
+.apiverse-message.bot h1 { font-size: 18px; }
+.apiverse-message.bot h2 { font-size: 16px; }
+.apiverse-message.bot h3 { font-size: 15px; }
 
 .apiverse-loading {
   display: flex;
@@ -342,10 +436,11 @@ class APIVerseWidget {
             this.addMessage(text, 'user');
             input.value = '';
 
-            // Call API
+            // Call streaming API for typewriter effect
             try {
                 this.addLoadingIndicator();
-                const response = await fetch(`${this.config.apiUrl}/search`, {
+                
+                const response = await fetch(`${this.config.apiUrl}/search/stream`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -357,19 +452,59 @@ class APIVerseWidget {
                     })
                 });
 
-                const data = await response.json();
                 this.removeLoadingIndicator();
 
-                if (response.ok) {
-                    // Find the best result
-                    if (data.results && data.results.length > 0) {
-                        this.addMessage(data.results[0].text, 'bot');
-                    } else {
-                        this.addMessage("I couldn't find any relevant information.", 'bot');
-                    }
-                } else {
-                    this.addMessage(`Error: ${data.detail || 'Failed to search'}`, 'bot');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    this.addMessage(`Error: ${errorData.detail || 'Failed to search'}`, 'bot');
+                    return;
                 }
+
+                // Create bot message element for streaming
+                const botMessage = this.createStreamingMessage();
+                let fullText = '';
+
+                // Read the stream
+                const reader = response.body?.getReader();
+                const decoder = new TextDecoder();
+
+                if (!reader) {
+                    this.addMessage('Error: Unable to read response stream', 'bot');
+                    return;
+                }
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.text) {
+                                    fullText += data.text;
+                                    this.updateStreamingMessage(botMessage, fullText);
+                                }
+                                if (data.done) {
+                                    // Stream complete
+                                    break;
+                                }
+                                if (data.error) {
+                                    fullText += `\n\nError: ${data.error}`;
+                                    this.updateStreamingMessage(botMessage, fullText);
+                                }
+                            } catch (e) {
+                                // Ignore JSON parse errors for incomplete chunks
+                            }
+                        }
+                    }
+                }
+
+                // Stream complete - finalize the message
+                this.finalizeStreamingMessage(botMessage, fullText);
 
             } catch (error) {
                 this.removeLoadingIndicator();
@@ -384,12 +519,123 @@ class APIVerseWidget {
         });
     }
 
+    private createStreamingMessage(): HTMLElement {
+        const div = document.createElement('div');
+        div.className = 'apiverse-message bot streaming';
+        div.innerHTML = '<span class="cursor">▋</span>';
+        this.messagesContainer.appendChild(div);
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        return div;
+    }
+
+    private updateStreamingMessage(element: HTMLElement, text: string) {
+        element.innerHTML = this.parseMarkdown(text) + '<span class="cursor">▋</span>';
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+
+    private finalizeStreamingMessage(element: HTMLElement, text: string) {
+        // Remove streaming class and cursor
+        element.classList.remove('streaming');
+        element.innerHTML = this.parseMarkdown(text);
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+
     private addMessage(text: string, type: 'user' | 'bot') {
         const div = document.createElement('div');
         div.className = `apiverse-message ${type}`;
-        div.textContent = text;
+        
+        if (type === 'bot') {
+            // Parse markdown for bot messages
+            div.innerHTML = this.parseMarkdown(text);
+        } else {
+            div.textContent = text;
+        }
+        
         this.messagesContainer.appendChild(div);
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+
+    private parseMarkdown(text: string): string {
+        // Escape HTML to prevent XSS
+        let html = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        
+        // Code blocks (```code```)
+        html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+        
+        // Inline code (`code`)
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // Bold (**text** or __text__) - must be before italic
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+        
+        // Headers (### text)
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        
+        // Unordered lists - handle "* item" format (common from AI responses)
+        // Match lines starting with "* " (but not ** which is bold)
+        html = html.replace(/^\* ([^*].*?)$/gm, '{{LI}}$1{{/LI}}');
+        // Also handle "- item" format
+        html = html.replace(/^- (.+)$/gm, '{{LI}}$1{{/LI}}');
+        
+        // Ordered lists (1. item)
+        html = html.replace(/^\d+\. (.+)$/gm, '{{LI}}$1{{/LI}}');
+        
+        // Italic (*text* or _text_) - after lists to avoid conflicts
+        html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+        html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+        
+        // Blockquotes (> text)
+        html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+        
+        // Links [text](url)
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        
+        // Convert list placeholders to proper HTML
+        // Group consecutive list items
+        html = html.replace(/({{LI}}[\s\S]*?{{\/LI}}(\n|$))+/g, (match) => {
+            const items = match.replace(/{{LI}}/g, '<li>').replace(/{{\/LI}}/g, '</li>');
+            return '<ul>' + items.trim() + '</ul>';
+        });
+        
+        // Clean up any remaining placeholders
+        html = html.replace(/{{LI}}/g, '<li>').replace(/{{\/LI}}/g, '</li>');
+        
+        // Line breaks - convert double newlines to paragraph breaks
+        html = html.replace(/\n\n+/g, '</p><p>');
+        
+        // Single line breaks (but not inside lists)
+        html = html.replace(/\n/g, '<br>');
+        
+        // Remove <br> inside and around list elements
+        html = html.replace(/<br><ul>/g, '<ul>');
+        html = html.replace(/<\/ul><br>/g, '</ul>');
+        html = html.replace(/<\/li><br><li>/g, '</li><li>');
+        html = html.replace(/<br><li>/g, '<li>');
+        html = html.replace(/<\/li><br>/g, '</li>');
+        
+        // Wrap in paragraph if content exists and not already wrapped
+        if (html.trim() && !html.trim().startsWith('<')) {
+            html = '<p>' + html + '</p>';
+        }
+        
+        // Clean up empty and nested paragraphs
+        html = html.replace(/<p>\s*<\/p>/g, '');
+        html = html.replace(/<p>(<h[123]>)/g, '$1');
+        html = html.replace(/(<\/h[123]>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<ul>)/g, '$1');
+        html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<pre>)/g, '$1');
+        html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+        html = html.replace(/<p><br>/g, '<p>');
+        html = html.replace(/<br><\/p>/g, '</p>');
+        
+        return html;
     }
 
     private addLoadingIndicator() {

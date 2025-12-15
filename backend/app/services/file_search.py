@@ -213,25 +213,197 @@ class FileSearchService:
                     pass
             
             if not remote_files:
-                # Fallback to no context or just query
-                # return [SearchResult(text="No accessible documents found.")]
-                # Or just answer without documents if that's desired? 
-                # Let's return a friendly message.
                 return [SearchResult(text="No accessible documents found in this knowledge base.")]
 
-            # Construct prompt for RAG
-            prompt_parts = [query_text] + remote_files
+            # RAG System Prompt - This is the key to good responses!
+            # Supports multiple languages (Chinese, English, etc.)
+            system_prompt = """You are a helpful multilingual AI assistant that answers questions based on the provided documents.
+
+IMPORTANT INSTRUCTIONS:
+1. RESPOND IN THE SAME LANGUAGE as the user's question (if user asks in Chinese, respond in Chinese; if English, respond in English)
+2. ONLY answer based on information found in the provided documents
+3. If the user's question is a greeting (like "hello", "hi", "你好", "嗨"), respond with a friendly greeting in their language and briefly describe what information is available in the documents
+4. If the information is not in the documents, say "I couldn't find specific information about that in the documents" (in the user's language)
+5. Provide clear, concise, and helpful answers
+6. Use a friendly, conversational tone
+7. Format your response nicely - use bullet points or numbered lists when appropriate
+8. Keep responses focused and not too long unless the user asks for detailed information
+
+Remember: You are a helpful AI assistant for documentation. Be professional and supportive."""
+
+            # Construct the full prompt
+            user_prompt = f"""Based on the attached documents, please answer the following question.
+Reply in the same language as the question.
+
+User Question: {query_text}
+
+Please provide a helpful and relevant response."""
+
+            # Construct prompt parts: system instruction, files, then user query
+            prompt_parts = remote_files + [system_prompt + "\n\n" + user_prompt]
             
-            response = model.generate_content(prompt_parts)
+            # Configure safety settings to be less restrictive for normal Q&A
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+            ]
+            
+            response = model.generate_content(
+                prompt_parts,
+                safety_settings=safety_settings
+            )
+            
+            # Check if response was blocked or empty
+            if not response.candidates:
+                return [SearchResult(
+                    text="抱歉，我无法处理这个请求。请尝试用其他方式提问。\n\nSorry, I couldn't process this request. Please try rephrasing your question.",
+                    score=0.0,
+                    source_document="system"
+                )]
+            
+            candidate = response.candidates[0]
+            
+            # Check finish reason
+            if candidate.finish_reason and candidate.finish_reason != 1:  # 1 = STOP (normal)
+                # Check if there's still text content
+                if candidate.content and candidate.content.parts:
+                    response_text = candidate.content.parts[0].text
+                else:
+                    return [SearchResult(
+                        text="抱歉，我无法回答这个问题。请尝试其他问题。\n\nSorry, I couldn't answer this question. Please try a different one.",
+                        score=0.0,
+                        source_document="system"
+                    )]
+            else:
+                # Normal response
+                response_text = response.text
             
             return [SearchResult(
-                text=response.text,
+                text=response_text,
                 score=1.0, 
                 source_document="combined"
             )]
             
         except Exception as e:
-            print(f"Search failed: {e}")
-            raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+            error_msg = str(e)
+            print(f"Search failed: {error_msg}")
+            
+            # Provide user-friendly error message
+            if "finish_reason" in error_msg or "Part" in error_msg:
+                return [SearchResult(
+                    text="抱歉，AI 暂时无法处理您的问题。请尝试换一种方式提问。\n\nSorry, the AI couldn't process your question. Please try rephrasing it.",
+                    score=0.0,
+                    source_document="system"
+                )]
+            
+            raise HTTPException(status_code=500, detail=f"Search failed: {error_msg}")
+
+    async def search_stream(self, db: Session, user_id: int, knowledge_base_id: int, query_text: str):
+        """Perform streaming semantic search using Google AI - yields text chunks"""
+        # 1. Check quota
+        self.check_quota(db, user_id)
+        
+        # 2. Get knowledge base and docs
+        kb = db.query(KnowledgeBase).filter(
+            KnowledgeBase.id == knowledge_base_id,
+            KnowledgeBase.user_id == user_id
+        ).first()
+        
+        if not kb:
+            yield "Knowledge base not found."
+            return
+            
+        docs = db.query(Document).filter(Document.knowledge_base_id == kb.id).all()
+        if not docs:
+            yield "No documents found in this knowledge base."
+            return
+            
+        # 3. Get file objects
+        remote_files = []
+        for d in docs:
+            try:
+                rf = genai.get_file(d.google_file_id)
+                remote_files.append(rf)
+            except Exception as e:
+                print(f"Warning: Could not retrieve file {d.google_file_id}: {e}")
+                pass
+        
+        if not remote_files:
+            yield "No accessible documents found in this knowledge base."
+            return
+
+        # Track usage
+        usage = FileSearchQuery(
+            user_id=user_id,
+            knowledge_base_id=knowledge_base_id,
+            query_text=query_text
+        )
+        db.add(usage)
+        
+        log = UsageLog(
+            user_id=user_id,
+            service_type="file_search_stream",
+            status="success",
+            details=f"KB: {kb.name}"
+        )
+        db.add(log)
+        db.commit()
+
+        # RAG System Prompt
+        system_prompt = """You are a helpful multilingual AI assistant that answers questions based on the provided documents.
+
+IMPORTANT INSTRUCTIONS:
+1. RESPOND IN THE SAME LANGUAGE as the user's question (if user asks in Chinese, respond in Chinese; if English, respond in English)
+2. ONLY answer based on information found in the provided documents
+3. If the user's question is a greeting (like "hello", "hi", "你好", "嗨"), respond with a friendly greeting in their language and briefly describe what information is available in the documents
+4. If the information is not in the documents, say "I couldn't find specific information about that in the documents" (in the user's language)
+5. Provide clear, concise, and helpful answers
+6. Use a friendly, conversational tone
+7. Format your response nicely - use bullet points or numbered lists when appropriate
+8. Keep responses focused and not too long unless the user asks for detailed information
+
+Remember: You are a helpful AI assistant for documentation. Be professional and supportive."""
+
+        user_prompt = f"""Based on the attached documents, please answer the following question.
+Reply in the same language as the question.
+
+User Question: {query_text}
+
+Please provide a helpful and relevant response."""
+
+        prompt_parts = remote_files + [system_prompt + "\n\n" + user_prompt]
+        
+        # Configure safety settings
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+        ]
+
+        try:
+            model = genai.GenerativeModel('gemini-flash-latest')
+            
+            # Use streaming generation
+            response = model.generate_content(
+                prompt_parts,
+                safety_settings=safety_settings,
+                stream=True  # Enable streaming!
+            )
+            
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+                    
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Stream search failed: {error_msg}")
+            
+            if "finish_reason" in error_msg or "Part" in error_msg:
+                yield "抱歉，AI 暂时无法处理您的问题。请尝试换一种方式提问。"
+            else:
+                yield f"Error: {error_msg}"
 
 file_search_service = FileSearchService()
