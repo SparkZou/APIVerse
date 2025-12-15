@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 
 export const LogoIcon = ({ className = "text-blue-500", size = 32 }: { className?: string, size?: number }) => (

@@ -20,6 +20,9 @@ class Subscription(SubscriptionBase):
 class APIKeyBase(BaseModel):
     label: str
 
+class APIKeyCreate(BaseModel):
+    label: str
+
 class APIKey(APIKeyBase):
     id: int
     key: str
@@ -31,9 +34,14 @@ class APIKey(APIKeyBase):
 class UserBase(BaseModel):
     email: str
     company_name: Optional[str] = None
+    company_url: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
+
+class UserUpdate(BaseModel):
+    company_name: Optional[str] = None
+    company_url: Optional[str] = None
 
 class User(UserBase):
     id: int

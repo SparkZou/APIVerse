@@ -60,6 +60,7 @@ def get_widget_config(
     return {
         "valid": True,
         "company_name": user.company_name,
+        "company_url": user.company_url or "https://web.smartbot.co.nz",
         "default_knowledge_base_id": kb_id,
         "theme": {
             "primaryColor": "#6366f1", # Default Indigo

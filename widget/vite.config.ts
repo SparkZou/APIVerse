@@ -10,6 +10,19 @@ export default defineConfig({
             formats: ['umd']
         },
         outDir: 'dist',
-        sourcemap: true
+        sourcemap: true,
+        cssCodeSplit: false,  // Keep CSS bundled
+        rollupOptions: {
+            output: {
+                // Inline CSS into JS
+                assetFileNames: (assetInfo) => {
+                    return assetInfo.name || 'assets/[name][extname]';
+                }
+            }
+        }
+    },
+    // Inline CSS into JS bundle
+    css: {
+        postcss: {}
     }
 });

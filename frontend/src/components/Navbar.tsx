@@ -1,24 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { LogoIcon } from './Logo';
 
 const ScrambleText = ({ text }: { text: string }) => {
   const [displayText, setDisplayText] = useState(text);
-  const [isHovering, setIsHovering] = useState(false);
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
-  const intervalRef = useRef<any>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startScramble = () => {
-    setIsHovering(true);
     let iteration = 0;
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
-      setDisplayText(prev => 
+      setDisplayText(() => 
         text
           .split("")
-          .map((letter, index) => {
+          .map((_, index) => {
             if (index < iteration) {
               return text[index];
             }
@@ -28,7 +26,7 @@ const ScrambleText = ({ text }: { text: string }) => {
       );
 
       if (iteration >= text.length) {
-        clearInterval(intervalRef.current);
+        if (intervalRef.current) clearInterval(intervalRef.current);
       }
 
       iteration += 1 / 3;
@@ -36,8 +34,7 @@ const ScrambleText = ({ text }: { text: string }) => {
   };
 
   const stopScramble = () => {
-    setIsHovering(false);
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setDisplayText(text);
   };
 
@@ -53,20 +50,8 @@ const ScrambleText = ({ text }: { text: string }) => {
 };
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const isLoggedIn = !!localStorage.getItem('token');
-
-  const handleScroll = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    if (window.location.pathname !== '/') {
-      window.location.href = `/#${id}`;
-      return;
-    }
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   return (
     <nav className="fixed w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">

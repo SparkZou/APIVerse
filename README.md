@@ -56,7 +56,8 @@ Built with a modern tech stack, APIVerse offers a seamless experience from regis
     ```
 4.  Run the server:
     ```bash
-    uvicorn app.main:app --reload
+    cd backend
+    uvicorn app.main:app --reload --port 8001 --host 0.0.0.0
     ```
 
 ### Frontend Setup

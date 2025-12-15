@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { API_BASE_URL, API_ENDPOINTS } from '../config';
 import {
   LayoutDashboard,
   Key,
@@ -135,46 +136,321 @@ const OverviewSection = ({ usageData, maxUsage }: any) => (
   </div>
 );
 
-const ApiKeysSection = () => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold text-white">API Keys</h2>
-      <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors">
-        <Plus className="h-4 w-4 mr-2" /> Create New Key
-      </button>
-    </div>
-    <div className="glass-card overflow-hidden">
-      <table className="w-full text-left text-sm text-slate-400">
-        <thead className="bg-slate-900/50 text-slate-200 uppercase font-semibold">
-          <tr>
-            <th className="px-6 py-4">Name</th>
-            <th className="px-6 py-4">Key Token</th>
-            <th className="px-6 py-4">Created</th>
-            <th className="px-6 py-4">Last Used</th>
-            <th className="px-6 py-4 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800">
-          {[
-            { name: "Production Key", key: "sk_live_...8s9d", created: "Oct 24, 2025", used: "Just now" },
-            { name: "Test Environment", key: "sk_test_...j2k1", created: "Oct 20, 2025", used: "2 days ago" },
-          ].map((key, i) => (
-            <tr key={i} className="hover:bg-slate-800/50 transition-colors">
-              <td className="px-6 py-4 font-medium text-white">{key.name}</td>
-              <td className="px-6 py-4 font-mono">{key.key}</td>
-              <td className="px-6 py-4">{key.created}</td>
-              <td className="px-6 py-4">{key.used}</td>
-              <td className="px-6 py-4 text-right space-x-2">
-                <button className="p-2 hover:bg-slate-700 rounded-md text-slate-400 hover:text-white"><Copy className="h-4 w-4" /></button>
-                <button className="p-2 hover:bg-red-900/20 rounded-md text-slate-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
-              </td>
+// Types for API data
+interface APIKey {
+  id: number;
+  key: string;
+  label: string;
+  created_at: string;
+}
+
+interface UserInfo {
+  id: number;
+  email: string;
+  company_name: string;
+  company_url: string;
+  is_active: boolean;
+  api_keys: APIKey[];
+}
+
+const ApiKeysSection = ({ user, apiKeys, onRefresh, onUserUpdate }: { user: UserInfo | null; apiKeys: APIKey[]; onRefresh: () => void; onUserUpdate: () => void }) => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newKeyLabel, setNewKeyLabel] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editCompanyName, setEditCompanyName] = useState(user?.company_name || '');
+  const [editCompanyUrl, setEditCompanyUrl] = useState(user?.company_url || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          company_name: editCompanyName,
+          company_url: editCompanyUrl 
+        })
+      });
+      if (response.ok) {
+        setIsEditingProfile(false);
+        onUserUpdate();
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleCreateKey = async () => {
+    if (!newKeyLabel.trim()) return;
+    setIsCreating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/me/api-keys`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ label: newKeyLabel })
+      });
+      if (response.ok) {
+        const newKey = await response.json();
+        setNewlyCreatedKey(newKey.key);
+        setNewKeyLabel('');
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to create API key:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteKey = async (keyId: number) => {
+    if (!confirm('Are you sure you want to delete this API key?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/me/api-keys/${keyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to delete API key:', error);
+    }
+  };
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const maskKey = (key: string) => {
+    if (key.length <= 10) return key;
+    return `${key.substring(0, 7)}...${key.substring(key.length - 4)}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* User Info Card */}
+      {user && (
+        <div className="glass-card p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-white">Account Information</h3>
+            {!isEditingProfile ? (
+              <button
+                onClick={() => {
+                  setEditCompanyName(user.company_name || '');
+                  setEditCompanyUrl(user.company_url || '');
+                  setIsEditingProfile(true);
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Edit Profile
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium disabled:opacity-50"
+                >
+                  {isSavingProfile ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setIsEditingProfile(false)}
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {isEditingProfile ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Company Name</label>
+                <input
+                  type="text"
+                  value={editCompanyName}
+                  onChange={(e) => setEditCompanyName(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="Your Company Name"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Company Website URL</label>
+                <input
+                  type="url"
+                  value={editCompanyUrl}
+                  onChange={(e) => setEditCompanyUrl(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="https://www.example.com"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Email</p>
+                <p className="text-white font-medium">{user.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Company</p>
+                <p className="text-white font-medium">{user.company_name || 'Not set'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Website</p>
+                {user.company_url ? (
+                  <a href={user.company_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-medium text-sm truncate block">
+                    {user.company_url}
+                  </a>
+                ) : (
+                  <p className="text-slate-500 font-medium">Not set</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Status</p>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {user.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">API Keys</h2>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors"
+        >
+          <Plus className="h-4 w-4 mr-2" /> Create New Key
+        </button>
+      </div>
+
+      {/* Newly Created Key Alert */}
+      {newlyCreatedKey && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="text-green-400 font-medium flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2" /> API Key Created Successfully
+              </h4>
+              <p className="text-slate-400 text-sm mt-1">Make sure to copy your API key now. You won't be able to see it again!</p>
+              <code className="block mt-2 bg-slate-900 px-3 py-2 rounded text-green-400 font-mono text-sm">{newlyCreatedKey}</code>
+            </div>
+            <button 
+              onClick={() => { handleCopyKey(newlyCreatedKey); setNewlyCreatedKey(null); }}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm font-medium"
+            >
+              Copy & Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create Key Modal */}
+      {showCreateModal && (
+        <div className="glass-card p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Create New API Key</h3>
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={newKeyLabel}
+              onChange={(e) => setNewKeyLabel(e.target.value)}
+              placeholder="Key name (e.g., Production, Test)"
+              className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+            />
+            <button
+              onClick={handleCreateKey}
+              disabled={isCreating || !newKeyLabel.trim()}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {isCreating ? 'Creating...' : 'Create'}
+            </button>
+            <button
+              onClick={() => { setShowCreateModal(false); setNewKeyLabel(''); }}
+              className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="glass-card overflow-hidden">
+        <table className="w-full text-left text-sm text-slate-400">
+          <thead className="bg-slate-900/50 text-slate-200 uppercase font-semibold">
+            <tr>
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Key Token</th>
+              <th className="px-6 py-4">Created</th>
+              <th className="px-6 py-4">Last Used</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {apiKeys.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                  No API keys found. Create one to get started.
+                </td>
+              </tr>
+            ) : (
+              apiKeys.map((key) => (
+                <tr key={key.id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-white">{key.label}</td>
+                  <td className="px-6 py-4 font-mono">{maskKey(key.key)}</td>
+                  <td className="px-6 py-4">{formatDate(key.created_at)}</td>
+                  <td className="px-6 py-4">-</td>
+                  <td className="px-6 py-4 text-right space-x-2">
+                    <button 
+                      onClick={() => handleCopyKey(key.key)}
+                      className="p-2 hover:bg-slate-700 rounded-md text-slate-400 hover:text-white"
+                      title="Copy full key"
+                    >
+                      {copiedKey === key.key ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteKey(key.id)}
+                      className="p-2 hover:bg-red-900/20 rounded-md text-slate-400 hover:text-red-500"
+                      title="Delete key"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const DocumentationSection = () => (
   <div className="space-y-6">
@@ -245,7 +521,7 @@ const ServiceSection = ({ title, icon: Icon, color, type }: any) => {
         body = { message: smsBody }; // Reusing smsBody for chat message
       }
 
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -260,16 +536,16 @@ const ServiceSection = ({ title, icon: Icon, color, type }: any) => {
   };
 
   const getCurlExample = () => {
-    if (type === 'email') return `curl -X POST http://localhost:8000/api/v1/email/send \\
+    if (type === 'email') return `curl -X POST ${API_ENDPOINTS.email}/send \\
   -H "Content-Type: application/json" \\
   -d '{"to_email": "user@example.com", "subject": "Hello", "content": "World"}'`;
-    if (type === 'sms') return `curl -X POST http://localhost:8000/api/v1/sms/send \\
+    if (type === 'sms') return `curl -X POST ${API_ENDPOINTS.sms}/send \\
   -H "Content-Type: application/json" \\
   -d '{"to_number": "+1234567890", "body": "Hello from APIVerse"}'`;
-    if (type === 'voice') return `curl -X POST http://localhost:8000/api/v1/phone/call \\
+    if (type === 'voice') return `curl -X POST ${API_ENDPOINTS.phone}/call \\
   -H "Content-Type: application/json" \\
   -d '{"to_number": "+1234567890"}'`;
-    if (type === 'chatbot') return `curl -X POST http://localhost:8000/api/v1/chat/message \\
+    if (type === 'chatbot') return `curl -X POST ${API_ENDPOINTS.chat}/message \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Hello AI"}'`;
     return '';
@@ -386,7 +662,7 @@ const BillingSection = () => {
   const handlePayment = async () => {
     setIsProcessing(true);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/payment/create-session', {
+      const response = await fetch(`${API_ENDPOINTS.payment}/create-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: 1000, currency: 'usd' }) // $10.00
@@ -588,7 +864,7 @@ const NZCreditReportSection = () => {
             <p className="text-slate-400 text-sm mb-4">Query NZ company credit data using the API.</p>
             <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto border border-slate-800">
               <code className="text-xs font-mono text-emerald-400 whitespace-pre">
-                {`curl -X GET http://localhost:8000/api/v1/nz-credit/lookup \\
+                {`curl -X GET ${API_ENDPOINTS.nzCredit}/lookup \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{"nzbn": "9429041530164"}'`}
               </code>
@@ -742,12 +1018,64 @@ WHERE city = 'Auckland'
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const navigate = useNavigate();
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/register');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setApiKeys(userData.api_keys || []);
+      } else if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/register');
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
+
+  const fetchApiKeys = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/me/api-keys`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const keys = await response.json();
+        setApiKeys(keys);
+      }
+    } catch (error) {
+      console.error('Failed to fetch API keys:', error);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/register');
+    } else {
+      fetchUserData();
     }
   }, [navigate]);
 
@@ -764,7 +1092,7 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
-      case 'keys': return <ApiKeysSection />;
+      case 'keys': return <ApiKeysSection user={user} apiKeys={apiKeys} onRefresh={fetchApiKeys} onUserUpdate={fetchUserData} />;
       case 'docs': return <DocumentationSection />;
       case 'email': return <ServiceSection title="Email API" icon={Mail} color="text-blue-400" type="email" />;
       case 'sms': return <ServiceSection title="SMS API" icon={MessageSquare} color="text-purple-400" type="sms" />;
@@ -779,6 +1107,14 @@ const Dashboard = () => {
       default: return <OverviewSection usageData={usageData} maxUsage={maxUsage} />;
     }
   };
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
@@ -853,14 +1189,16 @@ const Dashboard = () => {
               <Bell className="h-5 w-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full border-2 border-slate-900"></span>
             </button>
-            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 border-2 border-slate-800"></div>
+            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 border-2 border-slate-800 flex items-center justify-center text-white font-bold text-sm">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
           </div>
         </header>
 
         <div className="p-8 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && (
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-white">Welcome back, Alex Developer</h1>
+              <h1 className="text-2xl font-bold text-white">Welcome back, {user?.company_name || user?.email?.split('@')[0] || 'User'}</h1>
               <p className="text-slate-400 mt-1">Here is your platform overview for today.</p>
             </div>
           )}

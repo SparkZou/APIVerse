@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Upload, Search, Database, Trash2, FileText, AlertCircle, LogIn } from 'lucide-react';
+// framer-motion available if needed
+import { Upload, Search, Database, Trash2, FileText, LogIn } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config';
 
 interface KnowledgeBase {
     id: number;
@@ -38,7 +39,7 @@ const FileSearchPage: React.FC = () => {
                 setAuthError('Please login to access Knowledge Base features');
                 return;
             }
-            const res = await fetch('http://localhost:8000/api/file-search/knowledge-bases', {
+            const res = await fetch(`${API_ENDPOINTS.fileSearch}/knowledge-bases`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.status === 401) {
@@ -61,7 +62,7 @@ const FileSearchPage: React.FC = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-            const res = await fetch('http://localhost:8000/api/file-search/quota', {
+            const res = await fetch(`${API_ENDPOINTS.fileSearch}/quota`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -80,7 +81,7 @@ const FileSearchPage: React.FC = () => {
         if (!newKbName) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/api/file-search/knowledge-bases', {
+            const res = await fetch(`${API_ENDPOINTS.fileSearch}/knowledge-bases`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -104,7 +105,7 @@ const FileSearchPage: React.FC = () => {
 
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:8000/api/file-search/knowledge-bases/${selectedKb.id}/documents`, {
+            await fetch(`${API_ENDPOINTS.fileSearch}/knowledge-bases/${selectedKb.id}/documents`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -124,7 +125,7 @@ const FileSearchPage: React.FC = () => {
         
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/api/file-search/knowledge-bases/${selectedKb.id}/documents/${docId}`, {
+            const res = await fetch(`${API_ENDPOINTS.fileSearch}/knowledge-bases/${selectedKb.id}/documents/${docId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -146,7 +147,7 @@ const FileSearchPage: React.FC = () => {
         if (!selectedKb || !searchQuery) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/api/file-search/query', {
+            const res = await fetch(`${API_ENDPOINTS.fileSearch}/query`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -252,6 +253,7 @@ const FileSearchPage: React.FC = () => {
                                 <div className="flex items-center gap-3">
                                     <Database size={18} className={selectedKb?.id === kb.id ? 'text-indigo-600' : 'text-gray-400'} />
                                     <span className="font-medium text-gray-700">{kb.name}</span>
+                                    <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">ID: {kb.id}</span>
                                 </div>
                                 <div className="ml-8 mt-1 text-xs text-gray-400">
                                     {kb.documents ? kb.documents.length : 0} documents

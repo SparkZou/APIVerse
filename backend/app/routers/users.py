@@ -93,9 +93,66 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     
     return db_user
 
+@router.get("/me", response_model=schemas.User)
+def get_current_user_info(current_user: models.User = Depends(get_current_user)):
+    """Get current logged-in user's information including API keys"""
+    return current_user
+
 @router.get("/{user_id}", response_model=schemas.User)
 def read_user(user_id: int, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
+@router.put("/me", response_model=schemas.User)
+def update_current_user(
+    user_update: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    """Update current user's profile (company name, website URL)"""
+    if user_update.company_name is not None:
+        current_user.company_name = user_update.company_name
+    if user_update.company_url is not None:
+        current_user.company_url = user_update.company_url
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+# API Keys Management
+@router.get("/me/api-keys", response_model=List[schemas.APIKey])
+def get_api_keys(current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    """Get all API keys for current user"""
+    api_keys = db.query(models.APIKey).filter(models.APIKey.user_id == current_user.id).all()
+    return api_keys
+
+@router.post("/me/api-keys", response_model=schemas.APIKey)
+def create_api_key(key_data: schemas.APIKeyCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    """Create a new API key for current user"""
+    new_key = models.APIKey(
+        key=f"sk_{secrets.token_hex(16)}",
+        user_id=current_user.id,
+        label=key_data.label
+    )
+    db.add(new_key)
+    db.commit()
+    db.refresh(new_key)
+    return new_key
+
+@router.delete("/me/api-keys/{key_id}")
+def delete_api_key(key_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    """Delete an API key"""
+    api_key = db.query(models.APIKey).filter(
+        models.APIKey.id == key_id,
+        models.APIKey.user_id == current_user.id
+    ).first()
+    
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    
+    db.delete(api_key)
+    db.commit()
+    return {"message": "API key deleted successfully"}
+

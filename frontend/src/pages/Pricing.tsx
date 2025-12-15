@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { API_ENDPOINTS } from '../config';
 
 const Pricing = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -7,7 +8,7 @@ const Pricing = () => {
   const handleSubscribe = async (planName: string, price: number) => {
     setLoadingPlan(planName);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/payment/create-session', {
+      const response = await fetch(`${API_ENDPOINTS.payment}/create-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

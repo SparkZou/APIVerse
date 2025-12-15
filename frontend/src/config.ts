@@ -1,7 +1,7 @@
 // API Configuration
 // Change this when deploying to production or using a different port
 
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = 'https://apiverse.smartbot.co.nz'; // http://localhost:8001 || 'https://APIVerse.smartbot.co.nz';
 
 // Derived URLs
 export const API_ENDPOINTS = {

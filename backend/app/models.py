@@ -16,6 +16,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True)
     hashed_password = Column(String(255))
     company_name = Column(String(255))
+    company_url = Column(String(500), nullable=True)  # Company website URL
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

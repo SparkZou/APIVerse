@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { LogoIcon } from '../components/Logo';
 import { useToast } from '../components/ToastProvider';
+import { API_ENDPOINTS } from '../config';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -22,7 +23,7 @@ const Register = () => {
     try {
       if (isLogin) {
         // Login Logic
-        const response = await fetch('http://localhost:8000/users/login', {
+        const response = await fetch(`${API_ENDPOINTS.users}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -48,7 +49,7 @@ const Register = () => {
       } else {
         // Registration Logic
         // 1. Create User
-        const userResponse = await fetch('http://localhost:8000/users/', {
+        const userResponse = await fetch(`${API_ENDPOINTS.users}/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ const Register = () => {
         const userData = await userResponse.json();
 
         // 2. Create Subscription
-        const subResponse = await fetch(`http://localhost:8000/subscriptions/${userData.id}`, {
+        const subResponse = await fetch(`${API_ENDPOINTS.subscriptions}/${userData.id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ const Register = () => {
         }
 
         // 3. Auto-login after registration to get real JWT token
-        const loginResponse = await fetch('http://localhost:8000/users/login', {
+        const loginResponse = await fetch(`${API_ENDPOINTS.users}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
