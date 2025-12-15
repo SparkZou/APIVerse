@@ -83,11 +83,130 @@
   transition: all 0.3s ease;
   color: white;
   border: none;
+  position: relative;
+  animation: buttonPulse 2s ease-in-out infinite;
+}
+
+/* Pulse ring animation */
+.apiverse-widget-button::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  animation: pulseRing 2s ease-out infinite;
+  z-index: -1;
+}
+
+/* Second pulse ring (delayed) */
+.apiverse-widget-button::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  animation: pulseRing 2s ease-out infinite 1s;
+  z-index: -1;
+}
+
+/* Notification badge */
+.apiverse-widget-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  animation: badgeBounce 2s ease-in-out infinite;
+}
+
+/* Tooltip hint */
+.apiverse-widget-tooltip {
+  position: absolute;
+  right: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  color: #374151;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  animation: tooltipShow 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.apiverse-widget-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-left-color: white;
+}
+
+@keyframes buttonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes badgeBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes tooltipShow {
+  0%, 40%, 100% { opacity: 0; transform: translateY(-50%) translateX(10px); }
+  50%, 90% { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Hide animations when widget is open */
+.apiverse-widget-button.active::before,
+.apiverse-widget-button.active::after {
+  display: none;
+}
+
+.apiverse-widget-button.active .apiverse-widget-badge,
+.apiverse-widget-button.active + .apiverse-widget-tooltip,
+.apiverse-widget-button.active ~ .apiverse-widget-tooltip {
+  display: none;
 }
 
 .apiverse-widget-button:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  animation: none;
+}
+
+.apiverse-widget-button:hover::before,
+.apiverse-widget-button:hover::after {
+  animation: none;
+  opacity: 0;
 }
 
 .apiverse-widget-window {
@@ -366,7 +485,8 @@
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
       </svg>
-    `,this.window=document.createElement("div"),this.window.className="apiverse-widget-window",this.window.innerHTML=`
+      <span class="apiverse-widget-badge">1</span>
+    `;const e=document.createElement("div");e.className="apiverse-widget-tooltip",e.textContent="👋 Need help? Ask me!",this.window=document.createElement("div"),this.window.className="apiverse-widget-window",this.window.innerHTML=`
       <div class="apiverse-widget-header">
         <span class="apiverse-widget-title">💬 AI Assistant</span>
         <button class="apiverse-widget-close" id="apiverse-close">×</button>
@@ -381,8 +501,8 @@
         <button class="apiverse-widget-send">Send</button>
       </div>
       <div class="apiverse-powered">Powered by <a href="https://web.smartbot.co.nz" target="_blank">APIVerse</a></div>
-    `,this.messagesContainer=this.window.querySelector(".apiverse-widget-content"),this.container.appendChild(this.window),this.container.appendChild(t),document.body.appendChild(this.container)}attachEventListeners(){const t=this.container.querySelector(".apiverse-widget-button"),e=this.container.querySelector("#apiverse-close"),i=this.container.querySelector(".apiverse-widget-send"),p=this.container.querySelector(".apiverse-widget-input"),g=()=>{this.isOpen=!this.isOpen,this.window.classList.toggle("open",this.isOpen)};t==null||t.addEventListener("click",g),e==null||e.addEventListener("click",g);const h=async()=>{var m;const r=p.value.trim();if(r){this.addMessage(r,"user"),p.value="";try{this.addLoadingIndicator();const s=await fetch(`${this.config.apiUrl}/search/stream`,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":this.config.apiKey},body:JSON.stringify({query:r,knowledge_base_id:this.config.knowledgeBaseId})});if(this.removeLoadingIndicator(),!s.ok){const l=await s.json();this.addMessage(`Error: ${l.detail||"Failed to search"}`,"bot");return}const c=this.createStreamingMessage();let o="";const b=(m=s.body)==null?void 0:m.getReader(),x=new TextDecoder;if(!b){this.addMessage("Error: Unable to read response stream","bot");return}for(;;){const{done:l,value:u}=await b.read();if(l)break;const w=x.decode(u).split(`
-`);for(const f of w)if(f.startsWith("data: "))try{const a=JSON.parse(f.slice(6));if(a.text&&(o+=a.text,this.updateStreamingMessage(c,o)),a.done)break;a.error&&(o+=`
+    `,this.messagesContainer=this.window.querySelector(".apiverse-widget-content"),this.container.appendChild(this.window),this.container.appendChild(e),this.container.appendChild(t),document.body.appendChild(this.container)}attachEventListeners(){const t=this.container.querySelector(".apiverse-widget-button"),e=this.container.querySelector(".apiverse-widget-tooltip"),i=this.container.querySelector("#apiverse-close"),p=this.container.querySelector(".apiverse-widget-send"),l=this.container.querySelector(".apiverse-widget-input"),h=()=>{this.isOpen=!this.isOpen,this.window.classList.toggle("open",this.isOpen),t==null||t.classList.toggle("active",this.isOpen),e&&(e.style.display=this.isOpen?"none":"block")};t==null||t.addEventListener("click",h),i==null||i.addEventListener("click",h);const m=async()=>{var b;const s=l.value.trim();if(s){this.addMessage(s,"user"),l.value="";try{this.addLoadingIndicator();const o=await fetch(`${this.config.apiUrl}/search/stream`,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":this.config.apiKey},body:JSON.stringify({query:s,knowledge_base_id:this.config.knowledgeBaseId})});if(this.removeLoadingIndicator(),!o.ok){const g=await o.json();this.addMessage(`Error: ${g.detail||"Failed to search"}`,"bot");return}const c=this.createStreamingMessage();let r="";const f=(b=o.body)==null?void 0:b.getReader(),w=new TextDecoder;if(!f){this.addMessage("Error: Unable to read response stream","bot");return}for(;;){const{done:g,value:x}=await f.read();if(g)break;const v=w.decode(x).split(`
+`);for(const u of v)if(u.startsWith("data: "))try{const a=JSON.parse(u.slice(6));if(a.text&&(r+=a.text,this.updateStreamingMessage(c,r)),a.done)break;a.error&&(r+=`
 
-Error: ${a.error}`,this.updateStreamingMessage(c,o))}catch{}}this.finalizeStreamingMessage(c,o)}catch(s){this.removeLoadingIndicator(),this.addMessage("Sorry, something went wrong. Please check your connection.","bot"),console.error(s)}}};i==null||i.addEventListener("click",h),p.addEventListener("keypress",r=>{r.key==="Enter"&&h()})}createStreamingMessage(){const t=document.createElement("div");return t.className="apiverse-message bot streaming",t.innerHTML='<span class="cursor">▋</span>',this.messagesContainer.appendChild(t),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight,t}updateStreamingMessage(t,e){t.innerHTML=this.parseMarkdown(e)+'<span class="cursor">▋</span>',this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}finalizeStreamingMessage(t,e){t.classList.remove("streaming"),t.innerHTML=this.parseMarkdown(e),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}addMessage(t,e){const i=document.createElement("div");i.className=`apiverse-message ${e}`,e==="bot"?i.innerHTML=this.parseMarkdown(t):i.textContent=t,this.messagesContainer.appendChild(i),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}parseMarkdown(t){let e=t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");return e=e.replace(/```([\s\S]*?)```/g,"<pre><code>$1</code></pre>"),e=e.replace(/`([^`]+)`/g,"<code>$1</code>"),e=e.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>"),e=e.replace(/__([^_]+)__/g,"<strong>$1</strong>"),e=e.replace(/^### (.+)$/gm,"<h3>$1</h3>"),e=e.replace(/^## (.+)$/gm,"<h2>$1</h2>"),e=e.replace(/^# (.+)$/gm,"<h1>$1</h1>"),e=e.replace(/^\* ([^*].*?)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/^- (.+)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/^\d+\. (.+)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/\*([^*\n]+)\*/g,"<em>$1</em>"),e=e.replace(/_([^_\n]+)_/g,"<em>$1</em>"),e=e.replace(/^&gt; (.+)$/gm,"<blockquote>$1</blockquote>"),e=e.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>'),e=e.replace(/({{LI}}[\s\S]*?{{\/LI}}(\n|$))+/g,i=>"<ul>"+i.replace(/{{LI}}/g,"<li>").replace(/{{\/LI}}/g,"</li>").trim()+"</ul>"),e=e.replace(/{{LI}}/g,"<li>").replace(/{{\/LI}}/g,"</li>"),e=e.replace(/\n\n+/g,"</p><p>"),e=e.replace(/\n/g,"<br>"),e=e.replace(/<br><ul>/g,"<ul>"),e=e.replace(/<\/ul><br>/g,"</ul>"),e=e.replace(/<\/li><br><li>/g,"</li><li>"),e=e.replace(/<br><li>/g,"<li>"),e=e.replace(/<\/li><br>/g,"</li>"),e.trim()&&!e.trim().startsWith("<")&&(e="<p>"+e+"</p>"),e=e.replace(/<p>\s*<\/p>/g,""),e=e.replace(/<p>(<h[123]>)/g,"$1"),e=e.replace(/(<\/h[123]>)<\/p>/g,"$1"),e=e.replace(/<p>(<ul>)/g,"$1"),e=e.replace(/(<\/ul>)<\/p>/g,"$1"),e=e.replace(/<p>(<pre>)/g,"$1"),e=e.replace(/(<\/pre>)<\/p>/g,"$1"),e=e.replace(/<p><br>/g,"<p>"),e=e.replace(/<br><\/p>/g,"</p>"),e}addLoadingIndicator(){const t=document.createElement("div");t.className="apiverse-loading",t.id="apiverse-loader",t.textContent="Thinking...",this.messagesContainer.appendChild(t),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}removeLoadingIndicator(){const t=this.messagesContainer.querySelector("#apiverse-loader");t&&t.remove()}}window.APIVerseWidget=d});
+Error: ${a.error}`,this.updateStreamingMessage(c,r))}catch{}}this.finalizeStreamingMessage(c,r)}catch(o){this.removeLoadingIndicator(),this.addMessage("Sorry, something went wrong. Please check your connection.","bot"),console.error(o)}}};p==null||p.addEventListener("click",m),l.addEventListener("keypress",s=>{s.key==="Enter"&&m()})}createStreamingMessage(){const t=document.createElement("div");return t.className="apiverse-message bot streaming",t.innerHTML='<span class="cursor">▋</span>',this.messagesContainer.appendChild(t),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight,t}updateStreamingMessage(t,e){t.innerHTML=this.parseMarkdown(e)+'<span class="cursor">▋</span>',this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}finalizeStreamingMessage(t,e){t.classList.remove("streaming"),t.innerHTML=this.parseMarkdown(e),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}addMessage(t,e){const i=document.createElement("div");i.className=`apiverse-message ${e}`,e==="bot"?i.innerHTML=this.parseMarkdown(t):i.textContent=t,this.messagesContainer.appendChild(i),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}parseMarkdown(t){let e=t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");return e=e.replace(/```([\s\S]*?)```/g,"<pre><code>$1</code></pre>"),e=e.replace(/`([^`]+)`/g,"<code>$1</code>"),e=e.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>"),e=e.replace(/__([^_]+)__/g,"<strong>$1</strong>"),e=e.replace(/^### (.+)$/gm,"<h3>$1</h3>"),e=e.replace(/^## (.+)$/gm,"<h2>$1</h2>"),e=e.replace(/^# (.+)$/gm,"<h1>$1</h1>"),e=e.replace(/^\* ([^*].*?)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/^- (.+)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/^\d+\. (.+)$/gm,"{{LI}}$1{{/LI}}"),e=e.replace(/\*([^*\n]+)\*/g,"<em>$1</em>"),e=e.replace(/_([^_\n]+)_/g,"<em>$1</em>"),e=e.replace(/^&gt; (.+)$/gm,"<blockquote>$1</blockquote>"),e=e.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>'),e=e.replace(/({{LI}}[\s\S]*?{{\/LI}}(\n|$))+/g,i=>"<ul>"+i.replace(/{{LI}}/g,"<li>").replace(/{{\/LI}}/g,"</li>").trim()+"</ul>"),e=e.replace(/{{LI}}/g,"<li>").replace(/{{\/LI}}/g,"</li>"),e=e.replace(/\n\n+/g,"</p><p>"),e=e.replace(/\n/g,"<br>"),e=e.replace(/<br><ul>/g,"<ul>"),e=e.replace(/<\/ul><br>/g,"</ul>"),e=e.replace(/<\/li><br><li>/g,"</li><li>"),e=e.replace(/<br><li>/g,"<li>"),e=e.replace(/<\/li><br>/g,"</li>"),e.trim()&&!e.trim().startsWith("<")&&(e="<p>"+e+"</p>"),e=e.replace(/<p>\s*<\/p>/g,""),e=e.replace(/<p>(<h[123]>)/g,"$1"),e=e.replace(/(<\/h[123]>)<\/p>/g,"$1"),e=e.replace(/<p>(<ul>)/g,"$1"),e=e.replace(/(<\/ul>)<\/p>/g,"$1"),e=e.replace(/<p>(<pre>)/g,"$1"),e=e.replace(/(<\/pre>)<\/p>/g,"$1"),e=e.replace(/<p><br>/g,"<p>"),e=e.replace(/<br><\/p>/g,"</p>"),e}addLoadingIndicator(){const t=document.createElement("div");t.className="apiverse-loading",t.id="apiverse-loader",t.textContent="Thinking...",this.messagesContainer.appendChild(t),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight}removeLoadingIndicator(){const t=this.messagesContainer.querySelector("#apiverse-loader");t&&t.remove()}}window.APIVerseWidget=d});
 //# sourceMappingURL=apiverse-widget.js.map

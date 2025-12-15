@@ -84,11 +84,130 @@ const widgetStyles = `
   transition: all 0.3s ease;
   color: white;
   border: none;
+  position: relative;
+  animation: buttonPulse 2s ease-in-out infinite;
+}
+
+/* Pulse ring animation */
+.apiverse-widget-button::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  animation: pulseRing 2s ease-out infinite;
+  z-index: -1;
+}
+
+/* Second pulse ring (delayed) */
+.apiverse-widget-button::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  animation: pulseRing 2s ease-out infinite 1s;
+  z-index: -1;
+}
+
+/* Notification badge */
+.apiverse-widget-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  animation: badgeBounce 2s ease-in-out infinite;
+}
+
+/* Tooltip hint */
+.apiverse-widget-tooltip {
+  position: absolute;
+  right: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  color: #374151;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  animation: tooltipShow 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.apiverse-widget-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-left-color: white;
+}
+
+@keyframes buttonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes badgeBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes tooltipShow {
+  0%, 40%, 100% { opacity: 0; transform: translateY(-50%) translateX(10px); }
+  50%, 90% { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Hide animations when widget is open */
+.apiverse-widget-button.active::before,
+.apiverse-widget-button.active::after {
+  display: none;
+}
+
+.apiverse-widget-button.active .apiverse-widget-badge,
+.apiverse-widget-button.active + .apiverse-widget-tooltip,
+.apiverse-widget-button.active ~ .apiverse-widget-tooltip {
+  display: none;
 }
 
 .apiverse-widget-button:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  animation: none;
+}
+
+.apiverse-widget-button:hover::before,
+.apiverse-widget-button:hover::after {
+  animation: none;
+  opacity: 0;
 }
 
 .apiverse-widget-window {
@@ -443,14 +562,20 @@ class APIVerseWidget {
         this.container = document.createElement('div');
         this.container.id = 'apiverse-widget-container';
 
-        // Create button
+        // Create button with badge
         const button = document.createElement('div');
         button.className = 'apiverse-widget-button';
         button.innerHTML = `
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
       </svg>
+      <span class="apiverse-widget-badge">1</span>
     `;
+
+        // Create tooltip hint
+        const tooltip = document.createElement('div');
+        tooltip.className = 'apiverse-widget-tooltip';
+        tooltip.textContent = '👋 Need help? Ask me!';
 
         // Create window
         this.window = document.createElement('div');
@@ -475,12 +600,14 @@ class APIVerseWidget {
         this.messagesContainer = this.window.querySelector('.apiverse-widget-content') as HTMLElement;
 
         this.container.appendChild(this.window);
+        this.container.appendChild(tooltip);
         this.container.appendChild(button);
         document.body.appendChild(this.container);
     }
 
     private attachEventListeners() {
-        const button = this.container.querySelector('.apiverse-widget-button');
+        const button = this.container.querySelector('.apiverse-widget-button') as HTMLElement;
+        const tooltip = this.container.querySelector('.apiverse-widget-tooltip') as HTMLElement;
         const closeBtn = this.container.querySelector('#apiverse-close');
         const sendBtn = this.container.querySelector('.apiverse-widget-send');
         const input = this.container.querySelector('.apiverse-widget-input') as HTMLInputElement;
@@ -488,6 +615,12 @@ class APIVerseWidget {
         const toggle = () => {
             this.isOpen = !this.isOpen;
             this.window.classList.toggle('open', this.isOpen);
+            // Toggle button active state to hide animations when open
+            button?.classList.toggle('active', this.isOpen);
+            // Hide tooltip when widget is opened
+            if (tooltip) {
+                tooltip.style.display = this.isOpen ? 'none' : 'block';
+            }
         };
 
         button?.addEventListener('click', toggle);
