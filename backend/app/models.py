@@ -96,8 +96,10 @@ class Document(Base):
     google_file_id = Column(String(255))
     file_size = Column(Integer)
     mime_type = Column(String(100))
-    status = Column(String(50)) # pending, processing, active, failed
+    status = Column(String(50)) # pending, processing, active, failed, expired
+    file_content = Column(String(50000), nullable=True)  # Store file content for re-upload
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    google_file_expires_at = Column(DateTime, nullable=True)  # Google files expire in 48h
 
     knowledge_base = relationship("KnowledgeBase", back_populates="documents")
 

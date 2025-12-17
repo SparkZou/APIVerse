@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 from typing import List
 import time
+import base64
 from ..models import KnowledgeBase, Document, FileSearchQuery, User, UsageLog
 from ..schemas import SearchResult
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Initialize Google AI
 GOOGLE_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
@@ -14,6 +15,9 @@ if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
 FREE_QUOTA_LIMIT = int(os.getenv("FREE_SEARCH_QUOTA", "100"))
+
+# Google AI files expire after 48 hours, we refresh at 47 hours to be safe
+GOOGLE_FILE_EXPIRY_HOURS = 47
 
 class FileSearchService:
     def get_quota_usage(self, db: Session, user_id: int) -> int:
@@ -68,37 +72,17 @@ class FileSearchService:
             print(f"DEBUG: genai version: {genai.__version__}")
             google_file = genai.upload_file(path=temp_filename, display_name=file.filename)
             
-            # Wait for processing? No, we can add to vector store immediately usually, 
-            # but let's just make sure it's available. 
-            # For simplicity, we assume upload is synchronous enough or we just add it.
-            
-            # Add to vector store
-            # Currently Google GenAI SDK allows adding files to vector store
-            # We might need to batched update or update one by one.
-            # Ideally we update the vector store with this file.
-            
-            # Note: SDK syntax for adding to existing vector store might vary. 
-            # As of 0.3.2, it's often better to create a corpus or use the 'files' argument during creation,
-            # but for incremental updates, we might need to delete and recreate or use generic file search.
-            # WAIT: Google AI File API puts files in the cloud. 
-            # If we use the new 'VectorStore' API (beta), we can add files.
-            
-            # Let's try to update the vector store if the SDK supports it, or just keep track of files.
-            # Actually, `genai.update_vector_store` might be available?
-            # If not, we might have to re-create or lookup the method.
-            # Checking documentation (mental): genai.delete_file is there.
-            # For retrieval, we usually pass the files list to the model generation call, 
-            # OR we use a VectorStore.
-            
-            # Let's assume we can rely on the file existing. 
-            # For this implementation phase, let's just store the file reference. 
-            # Real-time retrieval often uses 'tools=[{code_execution}, {google_search_retrieval}]' 
-            # or specifically 'google.generativeai.protos.Tool' with 'retrieval'.
-            
-            # Let's proceed with tracking the file ID.
+            # Read file content for potential re-upload later (Google files expire in 48h)
+            with open(temp_filename, "rb") as f:
+                file_content_bytes = f.read()
+            # Store as base64 for text column compatibility
+            file_content_b64 = base64.b64encode(file_content_bytes).decode('utf-8')
             
             # Handle None content_type
             mime_type = file.content_type or 'application/octet-stream'
+            
+            # Calculate expiry time (48 hours from now, but we use 47 to be safe)
+            expires_at = datetime.utcnow() + timedelta(hours=GOOGLE_FILE_EXPIRY_HOURS)
             
             doc = Document(
                 knowledge_base_id=kb.id,
@@ -106,7 +90,9 @@ class FileSearchService:
                 google_file_id=google_file.name,
                 file_size=file_size,
                 mime_type=mime_type,
-                status="active"
+                status="active",
+                file_content=file_content_b64,
+                google_file_expires_at=expires_at
             )
             db.add(doc)
             db.commit()
@@ -151,6 +137,75 @@ class FileSearchService:
         db.commit()
         
         return {"message": "Document deleted successfully"}
+
+    def _reupload_expired_file(self, db: Session, doc: Document) -> str:
+        """Re-upload an expired file to Google AI and update the document record"""
+        if not doc.file_content:
+            print(f"Cannot re-upload {doc.filename}: no stored content")
+            return None
+            
+        try:
+            # Decode the stored base64 content
+            file_content_bytes = base64.b64decode(doc.file_content)
+            
+            # Write to temp file
+            temp_filename = f"temp_reupload_{doc.filename}"
+            with open(temp_filename, "wb") as f:
+                f.write(file_content_bytes)
+            
+            try:
+                # Upload to Google AI
+                google_file = genai.upload_file(path=temp_filename, display_name=doc.filename)
+                
+                # Update document record
+                doc.google_file_id = google_file.name
+                doc.google_file_expires_at = datetime.utcnow() + timedelta(hours=GOOGLE_FILE_EXPIRY_HOURS)
+                doc.status = "active"
+                db.commit()
+                
+                print(f"Re-uploaded expired file {doc.filename} -> {google_file.name}")
+                return google_file.name
+            finally:
+                if os.path.exists(temp_filename):
+                    os.remove(temp_filename)
+                    
+        except Exception as e:
+            print(f"Failed to re-upload {doc.filename}: {e}")
+            doc.status = "expired"
+            db.commit()
+            return None
+
+    def _get_valid_file(self, db: Session, doc: Document):
+        """Get a valid Google AI file object, re-uploading if expired"""
+        # Check if file is expired or about to expire
+        now = datetime.utcnow()
+        is_expired = (doc.google_file_expires_at and doc.google_file_expires_at < now)
+        
+        if is_expired:
+            print(f"File {doc.filename} is expired, attempting re-upload...")
+            new_file_id = self._reupload_expired_file(db, doc)
+            if not new_file_id:
+                return None
+        
+        # Try to get the file from Google AI
+        try:
+            rf = genai.get_file(doc.google_file_id)
+            return rf
+        except Exception as e:
+            error_str = str(e)
+            # Check if it's a 403/404 error (file expired or deleted)
+            if "403" in error_str or "404" in error_str or "not exist" in error_str.lower():
+                print(f"File {doc.filename} not accessible, attempting re-upload...")
+                new_file_id = self._reupload_expired_file(db, doc)
+                if new_file_id:
+                    try:
+                        return genai.get_file(new_file_id)
+                    except Exception as e2:
+                        print(f"Still cannot access re-uploaded file: {e2}")
+                        return None
+            else:
+                print(f"Error accessing file {doc.google_file_id}: {e}")
+                return None
 
     def search(self, db: Session, user_id: int, knowledge_base_id: int, query_text: str):
         """Perform semantic search using Google AI"""
@@ -200,20 +255,15 @@ class FileSearchService:
         
         try:
             # We use the generate_content with context
-            # Get file objects
+            # Get file objects (with automatic re-upload of expired files)
             remote_files = []
             for d in docs:
-                try:
-                    # Get file object from Google
-                    rf = genai.get_file(d.google_file_id)
+                rf = self._get_valid_file(db, d)
+                if rf:
                     remote_files.append(rf)
-                except Exception as e:
-                    print(f"Warning: Could not retrieve file {d.google_file_id}: {e}")
-                    # Could mark as deleted in DB?
-                    pass
             
             if not remote_files:
-                return [SearchResult(text="No accessible documents found in this knowledge base.")]
+                return [SearchResult(text="No accessible documents found in this knowledge base. Please try re-uploading your documents.")]
 
             # RAG System Prompt - This is the key to good responses!
             # Supports multiple languages (Chinese, English, etc.)
@@ -322,18 +372,15 @@ Please provide a helpful and relevant response."""
             yield "No documents found in this knowledge base."
             return
             
-        # 3. Get file objects
+        # 3. Get file objects (with automatic re-upload of expired files)
         remote_files = []
         for d in docs:
-            try:
-                rf = genai.get_file(d.google_file_id)
+            rf = self._get_valid_file(db, d)
+            if rf:
                 remote_files.append(rf)
-            except Exception as e:
-                print(f"Warning: Could not retrieve file {d.google_file_id}: {e}")
-                pass
         
         if not remote_files:
-            yield "No accessible documents found in this knowledge base."
+            yield "No accessible documents found in this knowledge base. Please try re-uploading your documents."
             return
 
         # Track usage
